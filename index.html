@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Mapping Tool for Pixera</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --text-dim: #9aa3b2;
+    --accent: #4f8cff;
+    --accent-hover: #6ea0ff;
+    --ok: #3ecf8e;
+    --warn: #f0b048;
+    --err: #ff6b6b;
+    --shadow: 0 1px 2px rgba(0,0,0,0.4);
+    --src-color: hsl(205, 75%, 60%);
+    --dst-color: hsl(145, 65%, 55%);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  header {
+    padding: 14px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0.01em; }
+  header .title-block { display: flex; flex-direction: column; gap: 3px; }
+  header .subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  header .made-by { font-size: 11px; color: var(--text-dim); }
+  header .made-by a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  header .made-by a:hover { text-decoration: underline; }
+  header .tools { display: flex; align-items: center; gap: 8px; }
+  header .header-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  header .header-link:hover { background: var(--panel-2); border-color: var(--accent); }
+  main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+  }
+  .panel h2 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button, .btn {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: background 0.1s, border-color 0.1s;
+  }
+  button:hover, .btn:hover { background: #252a35; border-color: #3a4050; }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
+  }
+  button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  button.danger { color: var(--err); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Shared canvas panel */
+  .canvas-sides {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 720px) { .canvas-sides { grid-template-columns: 1fr; } }
+  .side-panel {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .side-panel.side-src { border-top: 2px solid var(--src-color); }
+  .side-panel.side-dst { border-top: 2px solid var(--dst-color); }
+  .side-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .side-src .side-dot { background: var(--src-color); }
+  .side-dst .side-dot { background: var(--dst-color); }
+  .side-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  /* Mapping card */
+  .mapping {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+  }
+  .mapping:hover {
+    border-color: #3a4050;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+  }
+  .mapping.invalid { border-color: var(--err); }
+  .mapping-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .mapping-header .name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .mapping-header input.mapping-name {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 2px 4px;
+    border-radius: 4px;
+    min-width: 140px;
+  }
+  .mapping-header input.mapping-name:hover,
+  .mapping-header input.mapping-name:focus {
+    background: var(--panel);
+    outline: 1px solid var(--border);
+  }
+  .mapping-header .mapping-actions { display: flex; gap: 4px; }
+  .mapping-color {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .mapping-summary {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    white-space: nowrap;
+  }
+  .mapping-summary b { color: var(--accent); font-weight: 600; }
+
+  .sides {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 720px) { .sides { grid-template-columns: 1fr; } }
+  .matrix-panel {
+    margin-top: 10px;
+    background: rgba(79, 140, 255, 0.04);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .matrix-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+  .matrix-icon { color: var(--accent); margin-right: 2px; }
+  .matrix-sub {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-dim);
+    text-transform: none;
+    letter-spacing: 0;
+    margin-left: 4px;
+  }
+  .side-panel .field-group {
+    background: var(--panel);
+    margin-bottom: 6px;
+  }
+  .side-panel .field-group:last-child { margin-bottom: 0; }
+  .field-group {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .field-group-title {
+    font-size: 11px;
+    color: #c6cfdd;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .field-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .field {
+    flex: 1 1 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 70px;
+  }
+  .field label { font-size: 11px; color: #c6cfdd; font-weight: 600; }
+  .field input[type="number"] {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 13px;
+    font-family: inherit;
+    width: 100%;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .field input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.16);
+  }
+  .field input::placeholder { color: #5a6374; }
+
+  .warnings, .errors {
+    margin-top: 8px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .warnings {
+    background: rgba(240, 176, 72, 0.08);
+    border-left: 2px solid var(--warn);
+    color: var(--warn);
+  }
+  .errors {
+    background: rgba(255, 107, 107, 0.08);
+    border-left: 2px solid var(--err);
+    color: var(--err);
+  }
+  .warnings ul, .errors ul { margin: 0; padding-left: 18px; }
+
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)), var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .stats .stat { display: flex; flex-direction: column; }
+  .stats .stat-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stats .stat-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 420px;
+    background: var(--bg);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    margin-top: 8px;
+    font-size: 12px;
+  }
+  .legend .swatch {
+    display: inline-block;
+    width: 11px; height: 11px;
+    border-radius: 2px;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+  .lang-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .lang-toggle button {
+    border: none;
+    border-radius: 0;
+    padding: 6px 10px;
+    background: var(--panel-2);
+  }
+  .lang-toggle button.active { background: var(--accent); color: white; }
+
+  .footer-bar {
+    position: sticky;
+    bottom: 0;
+    background: rgba(23, 26, 33, 0.92);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    z-index: 10;
+  }
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .checkbox-row input { margin: 0; }
+
+  .help {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .help code {
+    background: var(--bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .hint-box {
+    background: linear-gradient(90deg, rgba(79, 140, 255, 0.10), rgba(79, 140, 255, 0.04));
+    border-left: 2px solid var(--accent);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+  .hint-box strong { color: var(--text); }
+
+  .banner {
+    background: rgba(79, 140, 255, 0.08);
+    border: 1px solid rgba(79, 140, 255, 0.4);
+    border-radius: 6px;
+    margin: 12px 20px 0;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .banner .banner-body { flex: 1; }
+  .banner button { white-space: nowrap; }
+
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    max-width: 720px;
+    width: 100%;
+    max-height: 85vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header h2 { margin: 0; font-size: 16px; }
+  .modal-body { padding: 16px 20px; overflow-y: auto; font-size: 13px; line-height: 1.5; }
+  .modal-body a { color: var(--accent); }
+  .modal-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 8px;
+  }
+  .hidden { display: none !important; }
+  .row-gap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  input[type="file"] { display: none; }
+  @media (max-width: 720px) {
+    header { align-items: flex-start; }
+    header .tools { width: 100%; flex-wrap: wrap; }
+    .footer-bar { padding: 12px 14px; }
+    .footer-bar .row-gap { width: 100%; justify-content: space-between; }
+    #btn-download { width: 100%; }
+    .mapping-summary { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="title-block">
+    <h1 data-i18n="app.title">Pixel Mapping Tool for Pixera</h1>
+    <span class="subtitle" data-i18n="app.subtitle">Fast CSV generator for Pixera pixel mapping</span>
+    <span class="made-by">Made by <a href="https://ltt.com.pl" target="_blank" rel="noopener noreferrer">LTT</a></span>
+  </div>
+  <div class="tools">
+    <div class="lang-toggle" role="group" aria-label="Language">
+      <button id="lang-pl" class="active">PL</button>
+      <button id="lang-en">EN</button>
+    </div>
+    <a href="https://help.pixera.one/livetab/pixel-based-video-mapping" target="_blank" rel="noopener noreferrer" class="header-link" data-i18n="btn.pixeraGuide">Poradnik Pixera ↗</a>
+    <button id="toggle-help" data-i18n="btn.help">Pomoc</button>
+  </div>
+</header>
+
+<div id="welcome-modal" class="modal-backdrop hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <div class="modal-header">
+      <h2 id="welcome-title" data-i18n="welcome.title">Witaj w Pixel Mapping Tool</h2>
+    </div>
+    <div class="modal-body" id="welcome-body" data-i18n-html="welcome.body"></div>
+    <div class="modal-footer">
+      <button id="welcome-dismiss" class="primary" data-i18n="welcome.start">Zaczynamy</button>
+    </div>
+  </div>
+</div>
+
+<div id="banner-v2" class="banner hidden">
+  <div class="banner-body" data-i18n-html="banner.v2Welcome"></div>
+  <button id="banner-v2-dismiss" data-i18n="banner.dismiss">OK</button>
+</div>
+
+<main>
+  <section class="panel">
+    <h2 data-i18n="section.preview">Podgląd</h2>
+    <canvas id="preview" width="800" height="420"></canvas>
+    <div class="legend" id="legend"></div>
+    <div style="margin-top: 8px; font-size: 11px; color: var(--text-dim);" data-i18n="preview.hint"></div>
+  </section>
+
+  <section class="panel">
+    <h2 data-i18n="section.canvas">Canvas</h2>
+    <div class="hint-box" data-i18n-html="hint.canvas"></div>
+    <div class="canvas-sides">
+      <div class="side-panel side-src">
+        <div class="side-title"><span class="side-dot"></span><span data-i18n="side.source">Source</span></div>
+        <div class="field-row">
+          <div class="field">
+            <label data-i18n="field.canvasW">W</label>
+            <input type="number" step="1" inputmode="numeric" id="canvas-src-w" placeholder="1920">
+          </div>
+          <div class="field">
+            <label data-i18n="field.canvasH">H</label>
+            <input type="number" step="1" inputmode="numeric" id="canvas-src-h" placeholder="1080">
+          </div>
+        </div>
+      </div>
+      <div class="side-panel side-dst">
+        <div class="side-title"><span class="side-dot"></span><span data-i18n="side.destination">Destination</span></div>
+        <div class="field-row">
+          <div class="field">
+            <label data-i18n="field.canvasW">W</label>
+            <input type="number" step="1" inputmode="numeric" id="canvas-dst-w" placeholder="4000">
+          </div>
+          <div class="field">
+            <label data-i18n="field.canvasH">H</label>
+            <input type="number" step="1" inputmode="numeric" id="canvas-dst-h" placeholder="2000">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="canvas-warn" class="warnings hidden"></div>
+  </section>
+
+  <section class="panel">
+    <h2 data-i18n="section.mappings">Mapowania</h2>
+    <div class="hint-box" data-i18n-html="hint.mapping"></div>
+    <div id="mappings-container"></div>
+    <div class="toolbar" style="margin-top: 10px;">
+      <button id="btn-add-mapping" data-i18n="btn.addMapping">+ Dodaj mapowanie</button>
+      <button id="btn-duplicate-last" data-i18n="btn.duplicate">Duplikuj ostatnie</button>
+      <button id="btn-import-json" data-i18n="btn.importJson">Importuj JSON</button>
+      <button id="btn-export-json" data-i18n="btn.exportJson">Eksportuj JSON</button>
+      <button id="btn-clear-all" class="danger" data-i18n="btn.clearAll">Wyczyść wszystko</button>
+      <input type="file" id="file-import" accept=".json,application/json">
+    </div>
+  </section>
+
+  <section class="panel" id="help-panel" style="display: none;">
+    <h2 data-i18n="section.help">Pomoc</h2>
+    <div class="help" id="help-content"></div>
+  </section>
+
+  <section class="panel">
+    <h2 data-i18n="section.stats">Statystyki</h2>
+    <div class="stats" id="stats"></div>
+  </section>
+</main>
+
+<div class="footer-bar">
+  <div class="checkbox-row">
+    <input type="checkbox" id="chk-dup-first" checked>
+    <label for="chk-dup-first" data-i18n="opt.dupFirst">Duplikuj pierwszy wiersz (Pixera)</label>
+  </div>
+  <div class="row-gap">
+    <span id="download-warn" style="color: var(--warn); font-size: 12px;"></span>
+    <button id="btn-download" class="primary" data-i18n="btn.downloadCsv">⬇ Pobierz CSV</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ===========================================================================
+  // i18n dictionary
+  // ===========================================================================
+  const I18N = {
+    pl: {
+      'app.title': 'Pixel Mapping Tool for Pixera',
+      'app.subtitle': 'Szybki generator CSV do pixel mappingu w Pixerze',
+      'btn.help': 'Pomoc',
+      'btn.pixeraGuide': 'Poradnik Pixera ↗',
+      'welcome.title': 'Witaj w Pixel Mapping Tool',
+      'welcome.start': 'Zaczynamy',
+      'welcome.body': `
+<p>To narzędzie usprawnia <strong>Pixel Based Video Mapping</strong> w Pixerze — zamiast klikać każdy region ręcznie, deklarujesz Canvas (Source/Destination) oraz mapowania (region lub matryca regionów) i pobierasz gotowy CSV.</p>
+<p><strong>Oficjalna dokumentacja Pixera:</strong> <a href="https://help.pixera.one/livetab/pixel-based-video-mapping" target="_blank" rel="noopener noreferrer">help.pixera.one — Pixel Based Video Mapping</a></p>
+<p><strong>Jak używać:</strong></p>
+<ol>
+  <li>Wpisz rozdzielczość <strong>Canvas</strong> (Source i Destination) na górze.</li>
+  <li>Dodaj jedno lub więcej <strong>mapowań</strong>. Każde mapowanie to region (lub matryca regionów) na wspólnym canvasie.</li>
+  <li>Dla każdego mapowania: Source Region (start X/Y + szer/wys + spacing X/Y), Destination Region (analogicznie) i Matrix (kolumny × wiersze).</li>
+  <li>Sprawdź podgląd — każde mapowanie ma swój kolor. Czerwony obrys = region poza canvasem.</li>
+  <li>Kliknij <strong>Pobierz CSV</strong> żeby pobrać plik kompatybilny z Pixera.</li>
+</ol>
+<p><strong>Format CSV:</strong> <code>src_pxl_pos_x;src_pxl_pos_y;dest_pxl_pos_x;dest_pxl_pos_y</code>, separator <code>;</code>, CRLF, per-piksel. Pierwszy wiersz danych jest zdublowany (checkbox na dole).</p>
+<p><strong>Persystencja:</strong> konfiguracja auto-zapisuje się w <code>localStorage</code>. Użyj <em>Eksportuj JSON</em> aby przenieść między komputerami.</p>
+<p style="color: var(--text-dim); font-size: 12px;">Tę wiadomość możesz w każdej chwili otworzyć ponownie przez przycisk <strong>Pomoc</strong> u góry.</p>
+`,
+      'btn.addMapping': '+ Dodaj mapowanie',
+      'btn.duplicate': 'Duplikuj ostatnie',
+      'btn.importJson': 'Importuj JSON',
+      'btn.exportJson': 'Eksportuj JSON',
+      'btn.clearAll': 'Wyczyść wszystko',
+      'btn.downloadCsv': '⬇ Pobierz CSV',
+      'btn.remove': 'Usuń',
+      'btn.duplicateMapping': 'Duplikuj',
+      'banner.v2Welcome': 'Wprowadzono nowy model danych (v2): <strong>wspólny canvas</strong> dla wszystkich mapowań. Poprzednia konfiguracja (v1) nie została automatycznie zmigrowana. Jeśli potrzebujesz starych danych, zaimportuj plik JSON przez <em>Importuj JSON</em>.',
+      'banner.dismiss': 'OK',
+      'section.canvas': 'Canvas',
+      'section.mappings': 'Mapowania',
+      'section.stats': 'Statystyki',
+      'section.preview': 'Podgląd',
+      'section.help': 'Pomoc',
+      'hint.canvas': 'Rozdzielczość wirtualnego płótna. Wszystkie mapowania współdzielą ten sam canvas — <strong>Source</strong> to rozmiar wejścia (np. renderowanej grafiki), <strong>Destination</strong> to rozmiar wyjścia (np. LED wall).',
+      'hint.mapping': 'Jedno <strong>mapowanie</strong> = jeden region (lub matryca regionów) na wspólnym canvasie powyżej. Matryca mnoży region w siatkę <code>cols × rows</code> ze spacingiem. Dodawaj kolejne mapowania gdy potrzebujesz innego rozmiaru regionu, innej pozycji w destination albo nieciągłej siatki.',
+      'summary.regions': 'regionów',
+      'summary.pixels': 'pikseli',
+      'side.source': 'Source (wejście)',
+      'side.destination': 'Destination (wyjście)',
+      'group.region': 'Region',
+      'group.matrix': 'Matryca',
+      'group.colStep': 'Krok kolumny',
+      'group.rowStep': 'Krok wiersza',
+      'matrix.appliesTo': '— mnoży region na Source i Destination',
+      'field.canvasW': 'W',
+      'field.canvasH': 'H',
+      'field.regionX': 'Start X',
+      'field.regionY': 'Start Y',
+      'field.regionW': 'Szer.',
+      'field.regionH': 'Wys.',
+      'field.matrixCols': 'Kolumny',
+      'field.matrixRows': 'Wiersze',
+      'field.stepX': 'X',
+      'field.stepY': 'Y',
+      'field.mappingName': 'Nazwa mapowania',
+      'stat.mappings': 'Mapowań',
+      'stat.regions': 'Regionów',
+      'stat.rows': 'Wierszy CSV',
+      'stat.size': 'Szacowany rozmiar',
+      'preview.hint': 'Po lewej Source, po prawej Destination. Każde mapowanie ma swój kolor. Czerwone obrysy oznaczają regiony wychodzące poza canvas.',
+      'opt.dupFirst': 'Duplikuj pierwszy wiersz (Pixera)',
+      'err.canvasEmpty': 'Ustaw wymiary canvasu (Source i Destination) aby wyeksportować',
+      'err.regionNonneg': 'Start regionu >= 0',
+      'err.regionSizePositive': 'Rozmiar regionu Source > 0',
+      'err.dstRegionSizePositive': 'Rozmiar regionu Destination > 0',
+      'err.matrixPositive': 'Matryca >= 1',
+      'err.spacingNonneg': 'Spacing Source >= 0',
+      'err.dstSpacingNonneg': 'Spacing Destination >= 0',
+      'err.destNonneg': 'Destination >= 0',
+      'err.canvasNegative': 'Canvas nie może być ujemny',
+      'warn.srcOutOfCanvas': 'Region (z matrycą) wychodzi poza Source canvas',
+      'warn.dstOutOfCanvas': 'Region (z matrycą) wychodzi poza Destination canvas',
+      'warn.destOverlap': 'Mapowania nakładają się w przestrzeni Destination',
+      'warn.canvasZero': 'Canvas = 0 — ustaw wymiary żeby wyeksportować',
+      'confirm.clearAll': 'Usunąć wszystkie mapowania? Tej akcji nie można cofnąć.',
+      'confirm.largeOutput': 'Output będzie mieć ~{n} wierszy (~{size}). Kontynuować?',
+      'import.invalid': 'Niepoprawny plik JSON',
+      'import.legacy': 'Zaimportowano plik v1 i zmigrowano do v2.',
+      'source.header': 'Source',
+      'dest.header': 'Destination',
+      'export.empty': 'Brak mapowań do wyeksportowania',
+      'help.body': `
+<p><strong>Jak używać:</strong></p>
+<ol>
+  <li>Wpisz rozdzielczość <strong>Canvas</strong> (Source i Destination) na górze.</li>
+  <li>Dodaj jedno lub więcej <strong>mapowań</strong>. Każde mapowanie to region (lub matryca regionów) na wspólnym canvasie.</li>
+  <li>Dla każdego mapowania: Source Region (start X/Y + szer/wys + spacing X/Y), Destination Region (analogicznie) i Matrix (kolumny × wiersze).</li>
+  <li>Sprawdź podgląd — każde mapowanie ma swój kolor. Czerwony obrys = region poza canvasem.</li>
+  <li>Kliknij <strong>Pobierz CSV</strong> żeby pobrać plik kompatybilny z Pixera.</li>
+</ol>
+<p><strong>Format CSV:</strong> <code>src_pxl_pos_x;src_pxl_pos_y;dest_pxl_pos_x;dest_pxl_pos_y</code>, separator <code>;</code>, CRLF, per-piksel. Pierwszy wiersz danych jest zdublowany (checkbox na dole).</p>
+<p><strong>Persystencja:</strong> konfiguracja auto-zapisuje się w <code>localStorage</code>. Użyj <em>Eksportuj JSON</em> aby przenieść między komputerami. Import obsługuje zarówno format v2, jak i stary v1.</p>
+<p><strong>Portability:</strong> ten plik działa przez <code>file://</code> — wystarczy kliknąć dwukrotnie. Brak serwera, brak internetu.</p>
+<p><strong>Uwaga:</strong> w Firefoksie <code>localStorage</code> pod <code>file://</code> jest izolowany per-ścieżka.</p>
+<p><strong>Dokumentacja Pixera:</strong> to narzędzie usprawnia proces opisany w oficjalnym poradniku — <a href="https://help.pixera.one/livetab/pixel-based-video-mapping" target="_blank" rel="noopener noreferrer">help.pixera.one — Pixel Based Video Mapping</a>.</p>
+`,
+    },
+    en: {
+      'app.title': 'Pixel Mapping Tool for Pixera',
+      'app.subtitle': 'Fast CSV generator for Pixera pixel mapping',
+      'btn.help': 'Help',
+      'btn.pixeraGuide': 'Pixera guide ↗',
+      'welcome.title': 'Welcome to Pixel Mapping Tool',
+      'welcome.start': 'Get started',
+      'welcome.body': `
+<p>This tool streamlines <strong>Pixel Based Video Mapping</strong> in Pixera — instead of clicking each region by hand, you declare a Canvas (Source/Destination) plus mappings (region or matrix of regions) and download a ready CSV.</p>
+<p><strong>Official Pixera documentation:</strong> <a href="https://help.pixera.one/livetab/pixel-based-video-mapping" target="_blank" rel="noopener noreferrer">help.pixera.one — Pixel Based Video Mapping</a></p>
+<p><strong>How to use:</strong></p>
+<ol>
+  <li>Enter <strong>Canvas</strong> resolution (Source and Destination) at the top.</li>
+  <li>Add one or more <strong>mappings</strong>. Each mapping is a region (or matrix of regions) on the shared canvas.</li>
+  <li>For each mapping: Source Region (start X/Y + W/H + spacing X/Y), Destination Region (same) and Matrix (cols × rows).</li>
+  <li>Check the preview — each mapping has its own color. Red outline = region outside the canvas.</li>
+  <li>Click <strong>Download CSV</strong> to get a Pixera-compatible file.</li>
+</ol>
+<p><strong>CSV format:</strong> <code>src_pxl_pos_x;src_pxl_pos_y;dest_pxl_pos_x;dest_pxl_pos_y</code>, semicolon separator, CRLF, per-pixel. First data row is duplicated (checkbox at the bottom).</p>
+<p><strong>Persistence:</strong> configuration auto-saves in browser <code>localStorage</code>. Use <em>Export JSON</em> to move between machines.</p>
+<p style="color: var(--text-dim); font-size: 12px;">You can reopen this message anytime via the <strong>Help</strong> button at the top.</p>
+`,
+      'btn.addMapping': '+ Add mapping',
+      'btn.duplicate': 'Duplicate last',
+      'btn.importJson': 'Import JSON',
+      'btn.exportJson': 'Export JSON',
+      'btn.clearAll': 'Clear all',
+      'btn.downloadCsv': '⬇ Download CSV',
+      'btn.remove': 'Remove',
+      'btn.duplicateMapping': 'Duplicate',
+      'banner.v2Welcome': 'New data model introduced (v2): <strong>shared canvas</strong> across all mappings. Previous v1 configuration was not auto-migrated. If you need the old data, import it via <em>Import JSON</em>.',
+      'banner.dismiss': 'OK',
+      'section.canvas': 'Canvas',
+      'section.mappings': 'Mappings',
+      'section.stats': 'Statistics',
+      'section.preview': 'Preview',
+      'section.help': 'Help',
+      'hint.canvas': 'Virtual canvas resolution. All mappings share the same canvas — <strong>Source</strong> is the input size (e.g. rendered graphic), <strong>Destination</strong> is the output size (e.g. LED wall).',
+      'hint.mapping': 'One <strong>mapping</strong> = a single region (or a matrix of regions) on the shared canvas above. The matrix multiplies the region into a <code>cols × rows</code> grid with spacing. Add more mappings when you need a different region size, a different destination position, or a non-contiguous layout.',
+      'summary.regions': 'regions',
+      'summary.pixels': 'pixels',
+      'side.source': 'Source (input)',
+      'side.destination': 'Destination (output)',
+      'group.region': 'Region',
+      'group.matrix': 'Matrix',
+      'group.colStep': 'Column step',
+      'group.rowStep': 'Row step',
+      'matrix.appliesTo': '— multiplies region on Source and Destination',
+      'field.canvasW': 'W',
+      'field.canvasH': 'H',
+      'field.regionX': 'Start X',
+      'field.regionY': 'Start Y',
+      'field.regionW': 'W',
+      'field.regionH': 'H',
+      'field.matrixCols': 'Cols',
+      'field.matrixRows': 'Rows',
+      'field.stepX': 'X',
+      'field.stepY': 'Y',
+      'field.mappingName': 'Mapping name',
+      'stat.mappings': 'Mappings',
+      'stat.regions': 'Regions',
+      'stat.rows': 'CSV rows',
+      'stat.size': 'Estimated size',
+      'preview.hint': 'Source on the left, Destination on the right. Each mapping has its own color. Red outlines mark regions outside the canvas.',
+      'opt.dupFirst': 'Duplicate first row (Pixera)',
+      'err.canvasEmpty': 'Set canvas dimensions (Source and Destination) before exporting',
+      'err.regionNonneg': 'Region start >= 0',
+      'err.regionSizePositive': 'Source region size > 0',
+      'err.dstRegionSizePositive': 'Destination region size > 0',
+      'err.matrixPositive': 'Matrix >= 1',
+      'err.spacingNonneg': 'Source spacing >= 0',
+      'err.dstSpacingNonneg': 'Destination spacing >= 0',
+      'err.destNonneg': 'Destination >= 0',
+      'err.canvasNegative': 'Canvas cannot be negative',
+      'warn.srcOutOfCanvas': 'Region (with matrix) exceeds Source canvas',
+      'warn.dstOutOfCanvas': 'Region (with matrix) exceeds Destination canvas',
+      'warn.destOverlap': 'Mappings overlap in Destination space',
+      'warn.canvasZero': 'Canvas = 0 — set dimensions to export',
+      'confirm.clearAll': 'Remove all mappings? This cannot be undone.',
+      'confirm.largeOutput': 'Output will have ~{n} rows (~{size}). Continue?',
+      'import.invalid': 'Invalid JSON file',
+      'import.legacy': 'Imported a v1 file and migrated to v2.',
+      'source.header': 'Source',
+      'dest.header': 'Destination',
+      'export.empty': 'No mappings to export',
+      'help.body': `
+<p><strong>How to use:</strong></p>
+<ol>
+  <li>Enter <strong>Canvas</strong> resolution (Source and Destination) at the top.</li>
+  <li>Add one or more <strong>mappings</strong>. Each mapping is a region (or matrix of regions) on the shared canvas.</li>
+  <li>For each mapping: Source Region (start X/Y + W/H + spacing X/Y), Destination Region (same) and Matrix (cols × rows).</li>
+  <li>Check the preview — each mapping has its own color. Red outline = region outside the canvas.</li>
+  <li>Click <strong>Download CSV</strong> to get a Pixera-compatible file.</li>
+</ol>
+<p><strong>CSV format:</strong> <code>src_pxl_pos_x;src_pxl_pos_y;dest_pxl_pos_x;dest_pxl_pos_y</code>, semicolon separator, CRLF, per-pixel. First data row is duplicated (checkbox at the bottom).</p>
+<p><strong>Persistence:</strong> configuration auto-saves in browser <code>localStorage</code>. Use <em>Export JSON</em> to move between machines. Import supports both v2 and the old v1 format.</p>
+<p><strong>Portability:</strong> this file runs from <code>file://</code> — just double-click. No server, no internet required.</p>
+<p><strong>Note:</strong> In Firefox, <code>localStorage</code> under <code>file://</code> is isolated per-path.</p>
+<p><strong>Pixera reference:</strong> this tool streamlines the workflow described in the official guide — <a href="https://help.pixera.one/livetab/pixel-based-video-mapping" target="_blank" rel="noopener noreferrer">help.pixera.one — Pixel Based Video Mapping</a>.</p>
+`,
+    },
+  };
+
+  let currentLang = 'pl';
+  function t(key, vars) {
+    const dict = I18N[currentLang] || I18N.pl;
+    let s = dict[key];
+    if (s === undefined) s = I18N.pl[key];
+    if (s === undefined) s = key;
+    if (vars) {
+      for (const k of Object.keys(vars)) s = s.replace('{' + k + '}', vars[k]);
+    }
+    return s;
+  }
+
+  // ===========================================================================
+  // Engine (pure, zero DOM)
+  // ===========================================================================
+  const Engine = {
+    defaultCanvas() {
+      return { sourceW: 0, sourceH: 0, destW: 0, destH: 0 };
+    },
+
+    defaultMapping() {
+      return {
+        name: '',
+        srcRegionX: 0, srcRegionY: 0,
+        srcRegionW: 0, srcRegionH: 0,
+        srcSpacingX: 0, srcSpacingY: 0,
+        srcRowShiftX: 0,
+        srcColumnShiftY: 0,
+        dstRegionX: 0, dstRegionY: 0,
+        dstRegionW: 0, dstRegionH: 0,
+        dstSpacingX: 0, dstSpacingY: 0,
+        dstRowShiftX: 0,
+        dstColumnShiftY: 0,
+        matrixCols: 1, matrixRows: 1,
+      };
+    },
+
+    // Normalize a single mapping from either v2 or v1 legacy shape.
+    // Only v2 keys end up in the result — legacy keys are translated, not kept.
+    upgradeMapping(raw) {
+      const m = Engine.defaultMapping();
+      if (!raw || typeof raw !== 'object') return m;
+      const num = (v, legacy, fallback) => {
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        if (typeof legacy === 'number' && Number.isFinite(legacy)) return legacy;
+        return fallback;
+      };
+      if (typeof raw.name === 'string') m.name = raw.name;
+      m.srcRegionX  = num(raw.srcRegionX,  raw.regionX,  m.srcRegionX);
+      m.srcRegionY  = num(raw.srcRegionY,  raw.regionY,  m.srcRegionY);
+      m.srcRegionW  = num(raw.srcRegionW,  raw.regionW,  m.srcRegionW);
+      m.srcRegionH  = num(raw.srcRegionH,  raw.regionH,  m.srcRegionH);
+      m.srcSpacingX = num(raw.srcSpacingX, raw.spacingX, m.srcSpacingX);
+      m.srcSpacingY = num(raw.srcSpacingY, raw.spacingY, m.srcSpacingY);
+      m.srcRowShiftX = num(raw.srcRowShiftX, undefined, m.srcRowShiftX);
+      m.srcColumnShiftY = num(raw.srcColumnShiftY, undefined, m.srcColumnShiftY);
+      m.dstRegionX  = num(raw.dstRegionX,  raw.destX,    m.dstRegionX);
+      m.dstRegionY  = num(raw.dstRegionY,  raw.destY,    m.dstRegionY);
+      m.dstRegionW  = num(raw.dstRegionW,  raw.regionW,  m.dstRegionW);
+      m.dstRegionH  = num(raw.dstRegionH,  raw.regionH,  m.dstRegionH);
+      m.dstSpacingX = num(raw.dstSpacingX, raw.spacingX, m.dstSpacingX);
+      m.dstSpacingY = num(raw.dstSpacingY, raw.spacingY, m.dstSpacingY);
+      m.dstRowShiftX = num(raw.dstRowShiftX, undefined, m.dstRowShiftX);
+      m.dstColumnShiftY = num(raw.dstColumnShiftY, undefined, m.dstColumnShiftY);
+      m.matrixCols  = num(raw.matrixCols,  undefined,    m.matrixCols);
+      m.matrixRows  = num(raw.matrixRows,  undefined,    m.matrixRows);
+      return m;
+    },
+
+    // Normalize a full v2 state object. Unknown shapes → clean empty state.
+    upgradeState(raw) {
+      const empty = {
+        canvas: Engine.defaultCanvas(),
+        mappings: [Engine.defaultMapping()],
+        dupFirst: true,
+      };
+      if (!raw || typeof raw !== 'object') return empty;
+      const num = (v, fallback) =>
+        (typeof v === 'number' && Number.isFinite(v)) ? v : fallback;
+      const canvas = Engine.defaultCanvas();
+      if (raw.canvas && typeof raw.canvas === 'object') {
+        canvas.sourceW = num(raw.canvas.sourceW, 0);
+        canvas.sourceH = num(raw.canvas.sourceH, 0);
+        canvas.destW   = num(raw.canvas.destW,   0);
+        canvas.destH   = num(raw.canvas.destH,   0);
+      }
+      const rawMappings = Array.isArray(raw.mappings) ? raw.mappings : [];
+      const mappings = rawMappings.map(Engine.upgradeMapping);
+      if (mappings.length === 0) mappings.push(Engine.defaultMapping());
+      return {
+        canvas,
+        mappings,
+        dupFirst: raw.dupFirst !== false,
+      };
+    },
+
+    // Convert a legacy v1 JSON (per-block canvas, { blocks: [...] }) to v2 shape.
+    // Shared canvas = max of per-block canvas dimensions so every legacy region fits.
+    importLegacyJson(raw) {
+      if (!raw || !Array.isArray(raw.blocks)) return null;
+      let sW = 0, sH = 0, dW = 0, dH = 0;
+      for (const b of raw.blocks) {
+        if (typeof b !== 'object' || !b) continue;
+        const n = (v) => (typeof v === 'number' && Number.isFinite(v)) ? v : 0;
+        sW = Math.max(sW, n(b.srcCanvasW), n(b.sourceW));
+        sH = Math.max(sH, n(b.srcCanvasH), n(b.sourceH));
+        dW = Math.max(dW, n(b.dstCanvasW), n(b.destCanvasW));
+        dH = Math.max(dH, n(b.dstCanvasH), n(b.destCanvasH));
+      }
+      const mappings = raw.blocks.map(Engine.upgradeMapping);
+      if (mappings.length === 0) mappings.push(Engine.defaultMapping());
+      return {
+        canvas: { sourceW: sW, sourceH: sH, destW: dW, destH: dH },
+        mappings,
+        dupFirst: raw.dupFirst !== false,
+      };
+    },
+
+    // Expand a mapping's matrix into concrete regions.
+    // Region = { sx, sy, sw, sh, dx, dy, dw, dh }
+    generateRegions(m) {
+      const out = [];
+      for (let col = 0; col < m.matrixCols; col++) {
+        for (let row = 0; row < m.matrixRows; row++) {
+          out.push({
+            sx: m.srcRegionX + col * m.srcSpacingX + row * m.srcRowShiftX,
+            sy: m.srcRegionY + row * m.srcSpacingY + col * m.srcColumnShiftY,
+            sw: m.srcRegionW,
+            sh: m.srcRegionH,
+            dx: m.dstRegionX + col * m.dstSpacingX + row * m.dstRowShiftX,
+            dy: m.dstRegionY + row * m.dstSpacingY + col * m.dstColumnShiftY,
+            dw: m.dstRegionW,
+            dh: m.dstRegionH,
+          });
+        }
+      }
+      return out;
+    },
+
+    matrixBounds(m, which) {
+      const regions = Engine.generateRegions(m);
+      if (regions.length === 0) return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const r of regions) {
+        const x = which === 'src' ? r.sx : r.dx;
+        const y = which === 'src' ? r.sy : r.dy;
+        const w = which === 'src' ? r.sw : r.dw;
+        const h = which === 'src' ? r.sh : r.dh;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x + w > maxX) maxX = x + w;
+        if (y + h > maxY) maxY = y + h;
+      }
+      return { minX, minY, maxX, maxY };
+    },
+
+    regionCount(m) { return m.matrixCols * m.matrixRows; },
+
+    // CSV iterates source pixels (Pixera order), so row count uses SOURCE size.
+    pixelCountOfMapping(m) {
+      return Engine.regionCount(m) * m.srcRegionW * m.srcRegionH;
+    },
+
+    totalPixelCount(mappings) {
+      let n = 0;
+      for (const m of mappings) n += Engine.pixelCountOfMapping(m);
+      return n;
+    },
+
+    // Validate a single mapping against the shared canvas.
+    // Errors block export; warnings are advisory (still allow export).
+    validateMapping(canvas, m) {
+      const errors = [];
+      const warnings = [];
+      if (m.srcRegionX < 0 || m.srcRegionY < 0 || m.dstRegionX < 0 || m.dstRegionY < 0) {
+        errors.push('err.regionNonneg');
+      }
+      if (!(m.srcRegionW > 0) || !(m.srcRegionH > 0)) errors.push('err.regionSizePositive');
+      if (!(m.dstRegionW > 0) || !(m.dstRegionH > 0)) errors.push('err.dstRegionSizePositive');
+      if (!(m.matrixCols >= 1) || !(m.matrixRows >= 1)) errors.push('err.matrixPositive');
+      if (m.srcSpacingX < 0 || m.srcSpacingY < 0) errors.push('err.spacingNonneg');
+      if (m.dstSpacingX < 0 || m.dstSpacingY < 0) errors.push('err.dstSpacingNonneg');
+      // Out-of-canvas checks — warnings so user can adjust canvas after the fact
+      if (canvas.sourceW > 0 && canvas.sourceH > 0) {
+        const srcBounds = Engine.matrixBounds(m, 'src');
+        if (srcBounds.minX < 0 || srcBounds.minY < 0 || srcBounds.maxX > canvas.sourceW || srcBounds.maxY > canvas.sourceH) {
+          warnings.push('warn.srcOutOfCanvas');
+        }
+      }
+      if (canvas.destW > 0 && canvas.destH > 0) {
+        const dstBounds = Engine.matrixBounds(m, 'dst');
+        if (dstBounds.minX < 0 || dstBounds.minY < 0 || dstBounds.maxX > canvas.destW || dstBounds.maxY > canvas.destH) {
+          warnings.push('warn.dstOutOfCanvas');
+        }
+      }
+      return { valid: errors.length === 0, errors, warnings };
+    },
+
+    // Canvas-level validation: must be > 0 on both sides to export.
+    validateCanvas(canvas) {
+      const errors = [];
+      if (canvas.sourceW < 0 || canvas.sourceH < 0 || canvas.destW < 0 || canvas.destH < 0) {
+        errors.push('err.canvasNegative');
+      }
+      if (!(canvas.sourceW > 0) || !(canvas.sourceH > 0) || !(canvas.destW > 0) || !(canvas.destH > 0)) {
+        errors.push('err.canvasEmpty');
+      }
+      return { valid: errors.length === 0, errors };
+    },
+
+    // Detect destination-space overlaps between mappings (advisory).
+    findDestOverlaps(mappings) {
+      const boxes = [];
+      mappings.forEach((m, mi) => {
+        const regions = Engine.generateRegions(m);
+        for (const r of regions) {
+          if (r.dw <= 0 || r.dh <= 0) continue;
+          boxes.push({ mi, x0: r.dx, y0: r.dy, x1: r.dx + r.dw, y1: r.dy + r.dh });
+        }
+      });
+      const pairs = new Set();
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const A = boxes[i], B = boxes[j];
+          if (A.mi === B.mi) continue;
+          if (A.x0 < B.x1 && B.x0 < A.x1 && A.y0 < B.y1 && B.y0 < A.y1) {
+            pairs.add(Math.min(A.mi, B.mi) + ',' + Math.max(A.mi, B.mi));
+          }
+        }
+      }
+      return Array.from(pairs);
+    },
+  };
+
+  // ===========================================================================
+  // Exporter (Pixera CSV + v2 JSON)
+  // ===========================================================================
+  const Exporter = {
+    CSV_HEADER: 'src_pxl_pos_x;src_pxl_pos_y;dest_pxl_pos_x;dest_pxl_pos_y',
+    CSV_EOL: '\r\n',
+
+    // Source-local (x,y) → destination-local (dx,dy). For 1:1 sizes this is
+    // identity (byte-exact Pixera match). For differing sizes, linear scaling.
+    _mapPixel(r, x, y) {
+      const dx = (r.sw === r.dw) ? x : Math.floor(x * r.dw / r.sw);
+      const dy = (r.sh === r.dh) ? y : Math.floor(y * r.dh / r.sh);
+      return [dx, dy];
+    },
+
+    toCSV(mappings, opts) {
+      const dupFirst = opts && opts.dupFirst !== false;
+      const parts = [Exporter.CSV_HEADER];
+      let firstRow = null;
+      for (const m of mappings) {
+        const regions = Engine.generateRegions(m);
+        for (const r of regions) {
+          for (let x = 0; x < r.sw; x++) {
+            for (let y = 0; y < r.sh; y++) {
+              const [mdx, mdy] = Exporter._mapPixel(r, x, y);
+              const line = (r.sx + x) + ';' + (r.sy + y) + ';' + (r.dx + mdx) + ';' + (r.dy + mdy);
+              if (firstRow === null) {
+                firstRow = line;
+                if (dupFirst) parts.push(line);
+              }
+              parts.push(line);
+            }
+          }
+        }
+      }
+      return parts.join(Exporter.CSV_EOL) + Exporter.CSV_EOL;
+    },
+
+    async toCSVAsync(mappings, opts, onProgress) {
+      const dupFirst = opts && opts.dupFirst !== false;
+      const parts = [Exporter.CSV_HEADER];
+      let firstRow = null;
+      let counter = 0;
+      const CHUNK = 100000;
+      for (const m of mappings) {
+        const regions = Engine.generateRegions(m);
+        for (const r of regions) {
+          for (let x = 0; x < r.sw; x++) {
+            for (let y = 0; y < r.sh; y++) {
+              const [mdx, mdy] = Exporter._mapPixel(r, x, y);
+              const line = (r.sx + x) + ';' + (r.sy + y) + ';' + (r.dx + mdx) + ';' + (r.dy + mdy);
+              if (firstRow === null) {
+                firstRow = line;
+                if (dupFirst) parts.push(line);
+              }
+              parts.push(line);
+              counter++;
+              if (counter % CHUNK === 0) {
+                if (onProgress) onProgress(counter);
+                await new Promise((res) => setTimeout(res, 0));
+              }
+            }
+          }
+        }
+      }
+      return parts.join(Exporter.CSV_EOL) + Exporter.CSV_EOL;
+    },
+
+    downloadBlob(content, filename, mime) {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    },
+
+    toJSON(state) {
+      return JSON.stringify({
+        version: 2,
+        canvas: state.canvas,
+        mappings: state.mappings,
+        dupFirst: state.dupFirst,
+      }, null, 2);
+    },
+
+    // Accepts both v2 ({ canvas, mappings }) and legacy v1 ({ blocks }).
+    // Returns { state, wasLegacy }.
+    fromJSON(text) {
+      const parsed = JSON.parse(text);
+      if (!parsed || typeof parsed !== 'object') throw new Error('invalid shape');
+      if (Array.isArray(parsed.mappings) && parsed.canvas) {
+        return { state: Engine.upgradeState(parsed), wasLegacy: false };
+      }
+      if (Array.isArray(parsed.blocks)) {
+        const migrated = Engine.importLegacyJson(parsed);
+        if (!migrated) throw new Error('invalid legacy shape');
+        return { state: migrated, wasLegacy: true };
+      }
+      throw new Error('invalid shape');
+    },
+  };
+
+  // ===========================================================================
+  // State + persistence
+  // ===========================================================================
+  const STORAGE_KEY = 'pixera-mapping-v2';
+  const LANG_KEY = 'pixera-mapping-lang';
+  const BANNER_KEY = 'pixera-mapping-v2-welcomed';
+  const WELCOME_KEY = 'pixera-mapping-welcome-seen';
+  const LEGACY_KEY = 'pixera-mapping-v1';
+
+  const state = {
+    canvas: Engine.defaultCanvas(),
+    mappings: [],
+    dupFirst: true,
+  };
+
+  function persist() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        canvas: state.canvas,
+        mappings: state.mappings,
+        dupFirst: state.dupFirst,
+      }));
+    } catch (e) {
+      // Quota exceeded or storage disabled — silent.
+    }
+  }
+
+  function restore() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      const up = Engine.upgradeState(parsed);
+      state.canvas = up.canvas;
+      state.mappings = up.mappings;
+      state.dupFirst = up.dupFirst;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function hasLegacyData() {
+    try { return !!localStorage.getItem(LEGACY_KEY); } catch (e) { return false; }
+  }
+  function wasWelcomedToV2() {
+    try { return localStorage.getItem(BANNER_KEY) === '1'; } catch (e) { return false; }
+  }
+  function markWelcomedToV2() {
+    try { localStorage.setItem(BANNER_KEY, '1'); } catch (e) {}
+  }
+  function wasWelcomeSeen() {
+    try { return localStorage.getItem(WELCOME_KEY) === '1'; } catch (e) { return false; }
+  }
+  function markWelcomeSeen() {
+    try { localStorage.setItem(WELCOME_KEY, '1'); } catch (e) {}
+  }
+  function showWelcomeModal() {
+    document.getElementById('welcome-modal').classList.remove('hidden');
+  }
+  function hideWelcomeModal() {
+    document.getElementById('welcome-modal').classList.add('hidden');
+  }
+
+  function restoreLang() {
+    try {
+      const l = localStorage.getItem(LANG_KEY);
+      if (l === 'pl' || l === 'en') currentLang = l;
+    } catch (e) {}
+  }
+
+  let persistTimer = null;
+  function debouncedPersist() {
+    if (persistTimer) clearTimeout(persistTimer);
+    persistTimer = setTimeout(persist, 500);
+  }
+
+  // ===========================================================================
+  // UI rendering
+  // ===========================================================================
+  // Symmetric layout: each side (src/dst) gets Region + column/row step vectors.
+  const SIDE_ROWS = [
+    { titleKey: 'group.region',  suffixes: ['RegionX', 'RegionY', 'RegionW', 'RegionH'],
+      labels: ['field.regionX', 'field.regionY', 'field.regionW', 'field.regionH'] },
+    { titleKey: 'group.colStep', suffixes: ['SpacingX', 'ColumnShiftY'],
+      labels: ['field.stepX', 'field.stepY'] },
+    { titleKey: 'group.rowStep', suffixes: ['RowShiftX', 'SpacingY'],
+      labels: ['field.stepX', 'field.stepY'] },
+  ];
+  const MATRIX_FIELDS = [
+    { key: 'matrixCols', label: 'field.matrixCols' },
+    { key: 'matrixRows', label: 'field.matrixRows' },
+  ];
+
+  function renderCanvasPanel() {
+    document.getElementById('canvas-src-w').value = state.canvas.sourceW || 0;
+    document.getElementById('canvas-src-h').value = state.canvas.sourceH || 0;
+    document.getElementById('canvas-dst-w').value = state.canvas.destW   || 0;
+    document.getElementById('canvas-dst-h').value = state.canvas.destH   || 0;
+    updateCanvasWarning();
+  }
+
+  function updateCanvasWarning() {
+    const warn = document.getElementById('canvas-warn');
+    const v = Engine.validateCanvas(state.canvas);
+    if (v.valid) {
+      warn.classList.add('hidden');
+      warn.textContent = '';
+    } else {
+      warn.classList.remove('hidden');
+      warn.textContent = v.errors.map(t).join(' · ');
+    }
+  }
+
+  function renderMappings() {
+    const container = document.getElementById('mappings-container');
+    container.innerHTML = '';
+    state.mappings.forEach((m, idx) => {
+      const v = Engine.validateMapping(state.canvas, m);
+      const el = document.createElement('div');
+      el.className = 'mapping' + (v.valid ? '' : ' invalid');
+      el.dataset.idx = String(idx);
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'mapping-header';
+      const nameWrap = document.createElement('div');
+      nameWrap.className = 'name-wrap';
+      const colorBox = document.createElement('span');
+      colorBox.className = 'mapping-color';
+      colorBox.style.background = blockColor(idx).stroke;
+      nameWrap.appendChild(colorBox);
+      const name = document.createElement('input');
+      name.className = 'mapping-name';
+      name.type = 'text';
+      name.placeholder = t('field.mappingName') + ' #' + (idx + 1);
+      name.value = m.name || '';
+      name.addEventListener('input', (e) => {
+        m.name = e.target.value;
+        debouncedPersist();
+        updateLegend();
+      });
+      nameWrap.appendChild(name);
+      const summary = document.createElement('span');
+      summary.className = 'mapping-summary';
+      updateMappingSummary(summary, m);
+      nameWrap.appendChild(summary);
+      header.appendChild(nameWrap);
+
+      const actions = document.createElement('div');
+      actions.className = 'mapping-actions';
+      const dupBtn = document.createElement('button');
+      dupBtn.textContent = t('btn.duplicateMapping');
+      dupBtn.addEventListener('click', () => {
+        state.mappings.splice(idx + 1, 0, JSON.parse(JSON.stringify(m)));
+        rerender();
+        debouncedPersist();
+      });
+      actions.appendChild(dupBtn);
+      const rmBtn = document.createElement('button');
+      rmBtn.className = 'danger';
+      rmBtn.textContent = t('btn.remove');
+      rmBtn.addEventListener('click', () => {
+        state.mappings.splice(idx, 1);
+        rerender();
+        debouncedPersist();
+      });
+      actions.appendChild(rmBtn);
+      header.appendChild(actions);
+      el.appendChild(header);
+
+      // Source / destination sides
+      const sides = document.createElement('div');
+      sides.className = 'sides';
+      sides.appendChild(buildSide(m, el, summary, 'src', 'side.source'));
+      sides.appendChild(buildSide(m, el, summary, 'dst', 'side.destination'));
+      el.appendChild(sides);
+
+      // Matrix panel
+      const mx = document.createElement('div');
+      mx.className = 'matrix-panel';
+      const mxTitle = document.createElement('div');
+      mxTitle.className = 'matrix-title';
+      mxTitle.innerHTML = '<span class="matrix-icon">⊞</span> ' + t('group.matrix') +
+        ' <span class="matrix-sub">' + t('matrix.appliesTo') + '</span>';
+      mx.appendChild(mxTitle);
+      const mxRow = document.createElement('div');
+      mxRow.className = 'field-row';
+      for (const f of MATRIX_FIELDS) {
+        mxRow.appendChild(makeNumField(m, f.key, f.label, el, summary));
+      }
+      mx.appendChild(mxRow);
+      el.appendChild(mx);
+
+      // Errors + warnings
+      const feedback = document.createElement('div');
+      el.appendChild(feedback);
+      updateMappingFeedback(el, v);
+
+      container.appendChild(el);
+    });
+  }
+
+  function buildSide(m, el, summary, prefix, titleKey) {
+    const side = document.createElement('div');
+    side.className = 'side-panel side-' + prefix;
+    const h = document.createElement('div');
+    h.className = 'side-title';
+    h.innerHTML = '<span class="side-dot"></span>' + t(titleKey);
+    side.appendChild(h);
+    for (const row of SIDE_ROWS) {
+      const g = document.createElement('div');
+      g.className = 'field-group';
+      const gt = document.createElement('div');
+      gt.className = 'field-group-title';
+      gt.textContent = t(row.titleKey);
+      g.appendChild(gt);
+      const fr = document.createElement('div');
+      fr.className = 'field-row';
+      row.suffixes.forEach((suf, i) => {
+        const key = prefix + suf;
+        fr.appendChild(makeNumField(m, key, row.labels[i], el, summary));
+      });
+      g.appendChild(fr);
+      side.appendChild(g);
+    }
+    return side;
+  }
+
+  function makeNumField(m, key, labelKey, mappingEl, summary, sideKey) {
+    const fEl = document.createElement('div');
+    fEl.className = 'field';
+    const lbl = document.createElement('label');
+    lbl.textContent = sideKey ? (t(labelKey) + ' · ' + t(sideKey)) : t(labelKey);
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.step = '1';
+    inp.inputMode = 'numeric';
+    inp.value = m[key];
+    inp.dataset.key = key;
+    inp.addEventListener('focus', () => inp.select());
+    inp.addEventListener('input', (e) => {
+      const raw = e.target.value;
+      const n = raw === '' ? 0 : parseInt(raw, 10);
+      m[key] = Number.isFinite(n) ? n : 0;
+      const vNow = Engine.validateMapping(state.canvas, m);
+      mappingEl.classList.toggle('invalid', !vNow.valid);
+      updateMappingFeedback(mappingEl, vNow);
+      updateMappingSummary(summary, m);
+      updateStats();
+      schedulePreview();
+      debouncedPersist();
+    });
+    fEl.appendChild(lbl);
+    fEl.appendChild(inp);
+    return fEl;
+  }
+
+  function updateMappingSummary(el, m) {
+    const regions = Engine.regionCount(m);
+    const pixels = regions * m.srcRegionW * m.srcRegionH;
+    const sizes = (m.srcRegionW !== m.dstRegionW || m.srcRegionH !== m.dstRegionH)
+      ? ' · ' + m.srcRegionW + '×' + m.srcRegionH + '→' + m.dstRegionW + '×' + m.dstRegionH
+      : ' · ' + m.srcRegionW + '×' + m.srcRegionH + ' px';
+    el.innerHTML = '→ <b>' + regions + '</b> ' + t('summary.regions') +
+      ' · ' + m.matrixCols + '×' + m.matrixRows + sizes +
+      ' · <b>' + pixels.toLocaleString() + '</b> ' + t('summary.pixels');
+  }
+
+  function updateMappingFeedback(mappingEl, v) {
+    const existingErr = mappingEl.querySelector(':scope > .errors');
+    const existingWarn = mappingEl.querySelector(':scope > .warnings');
+    if (existingErr) existingErr.remove();
+    if (existingWarn) existingWarn.remove();
+    if (v.errors && v.errors.length) {
+      const box = document.createElement('div');
+      box.className = 'errors';
+      const ul = document.createElement('ul');
+      for (const e of v.errors) {
+        const li = document.createElement('li');
+        li.textContent = t(e);
+        ul.appendChild(li);
+      }
+      box.appendChild(ul);
+      mappingEl.appendChild(box);
+    }
+    if (v.warnings && v.warnings.length) {
+      const box = document.createElement('div');
+      box.className = 'warnings';
+      const ul = document.createElement('ul');
+      for (const w of v.warnings) {
+        const li = document.createElement('li');
+        li.textContent = t(w);
+        ul.appendChild(li);
+      }
+      box.appendChild(ul);
+      mappingEl.appendChild(box);
+    }
+  }
+
+  function formatBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB';
+    return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }
+
+  function updateStats() {
+    const el = document.getElementById('stats');
+    const mappings = state.mappings;
+    let regions = 0;
+    for (const m of mappings) regions += Engine.regionCount(m);
+    const rows = Engine.totalPixelCount(mappings);
+    const estSize = 60 + rows * 22 + (state.dupFirst && rows > 0 ? 22 : 0);
+    el.innerHTML = '';
+    const items = [
+      { label: t('stat.mappings'), value: mappings.length },
+      { label: t('stat.regions'), value: regions },
+      { label: t('stat.rows'), value: rows + (state.dupFirst && rows > 0 ? 1 : 0) },
+      { label: t('stat.size'), value: formatBytes(estSize) },
+    ];
+    for (const it of items) {
+      const s = document.createElement('div');
+      s.className = 'stat';
+      s.innerHTML = '<span class="stat-label"></span><span class="stat-value"></span>';
+      s.querySelector('.stat-label').textContent = it.label;
+      s.querySelector('.stat-value').textContent = it.value;
+      el.appendChild(s);
+    }
+    const overlaps = Engine.findDestOverlaps(mappings);
+    const warnEl = document.getElementById('download-warn');
+    const canvasV = Engine.validateCanvas(state.canvas);
+    if (!canvasV.valid) {
+      warnEl.textContent = '⚠ ' + t('warn.canvasZero');
+    } else if (overlaps.length > 0) {
+      warnEl.textContent = '⚠ ' + t('warn.destOverlap');
+    } else {
+      warnEl.textContent = '';
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Preview — shared canvas, region granularity, red outlines on out-of-bounds
+  // ---------------------------------------------------------------------------
+  function blockColor(i) {
+    const hue = (i * 67) % 360;
+    return {
+      fill: 'hsla(' + hue + ', 70%, 55%, 0.25)',
+      stroke: 'hsl(' + hue + ', 75%, 65%)',
+    };
+  }
+
+  function renderPreview() {
+    const canvas = document.getElementById('preview');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+    canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const W = rect.width, H = rect.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0f1115';
+    ctx.fillRect(0, 0, W, H);
+
+    const halfW = W / 2;
+    const padding = 14;
+    const headerHeight = 22;
+    const footerHeight = 22;
+
+    const regionsByMapping = state.mappings.map(Engine.generateRegions);
+
+    drawPanel(ctx, 0, 0, halfW, H, padding, headerHeight, footerHeight,
+              t('source.header'),
+              { w: state.canvas.sourceW, h: state.canvas.sourceH },
+              regionsByMapping, 'src');
+    drawPanel(ctx, halfW, 0, halfW, H, padding, headerHeight, footerHeight,
+              t('dest.header'),
+              { w: state.canvas.destW, h: state.canvas.destH },
+              regionsByMapping, 'dst');
+
+    ctx.strokeStyle = '#2a2f3a';
+    ctx.beginPath();
+    ctx.moveTo(halfW, 0);
+    ctx.lineTo(halfW, H);
+    ctx.stroke();
+  }
+
+  function drawPanel(ctx, x, y, w, h, pad, headerH, footerH, title, canvasDims, regionsByMapping, which) {
+    // Title
+    ctx.fillStyle = '#e6e8ec';
+    ctx.font = '600 12px system-ui, sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText(title, x + pad, y + 5);
+
+    // Compute effective frame: declared canvas (if > 0) or bounding box of regions.
+    // OOB regions are still drawn relative to the frame, with red outlines.
+    let frame;
+    const declared = canvasDims.w > 0 && canvasDims.h > 0;
+    if (declared) {
+      // Expand frame if any region extends past declared canvas, so user sees OOB.
+      let maxX = canvasDims.w, maxY = canvasDims.h;
+      for (const regions of regionsByMapping) {
+        for (const r of regions) {
+          const rx = which === 'src' ? r.sx : r.dx;
+          const ry = which === 'src' ? r.sy : r.dy;
+          const rw = which === 'src' ? r.sw : r.dw;
+          const rh = which === 'src' ? r.sh : r.dh;
+          if (rx + rw > maxX) maxX = rx + rw;
+          if (ry + rh > maxY) maxY = ry + rh;
+        }
+      }
+      frame = { minX: 0, minY: 0, maxX, maxY, canvasW: canvasDims.w, canvasH: canvasDims.h, declared: true };
+    } else {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      let any = false;
+      for (const regions of regionsByMapping) {
+        for (const r of regions) {
+          const rx = which === 'src' ? r.sx : r.dx;
+          const ry = which === 'src' ? r.sy : r.dy;
+          const rw = which === 'src' ? r.sw : r.dw;
+          const rh = which === 'src' ? r.sh : r.dh;
+          if (rw <= 0 || rh <= 0) continue;
+          if (rx < minX) minX = rx;
+          if (ry < minY) minY = ry;
+          if (rx + rw > maxX) maxX = rx + rw;
+          if (ry + rh > maxY) maxY = ry + rh;
+          any = true;
+        }
+      }
+      if (!any) {
+        ctx.fillStyle = '#3a4050';
+        ctx.font = '11px system-ui, sans-serif';
+        ctx.fillText('— ' + t('warn.canvasZero'), x + pad, y + headerH + 4);
+        return;
+      }
+      const padX = Math.max(1, maxX - minX) * 0.1;
+      const padY = Math.max(1, maxY - minY) * 0.1;
+      frame = {
+        minX: Math.max(0, minX - padX),
+        minY: Math.max(0, minY - padY),
+        maxX: maxX + padX,
+        maxY: maxY + padY,
+        canvasW: 0, canvasH: 0,
+        declared: false,
+      };
+    }
+
+    const spanX = Math.max(1, frame.maxX - frame.minX);
+    const spanY = Math.max(1, frame.maxY - frame.minY);
+
+    const plotW = w - 2 * pad;
+    const plotH = h - headerH - footerH;
+    const scale = Math.min(plotW / spanX, plotH / spanY);
+    const drawW = spanX * scale;
+    const drawH = spanY * scale;
+    const ox = x + pad + (plotW - drawW) / 2;
+    const oy = y + headerH + (plotH - drawH) / 2;
+
+    // Frame background (full scaled viewport)
+    ctx.fillStyle = '#121820';
+    ctx.fillRect(ox, oy, drawW, drawH);
+
+    // Declared canvas outline (shown inside frame if frame was expanded for OOB)
+    if (frame.declared) {
+      const cx0 = ox + (0 - frame.minX) * scale;
+      const cy0 = oy + (0 - frame.minY) * scale;
+      const cw = frame.canvasW * scale;
+      const ch = frame.canvasH * scale;
+      ctx.fillStyle = '#131720';
+      ctx.fillRect(cx0, cy0, cw, ch);
+      ctx.strokeStyle = '#4a5160';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(cx0, cy0, cw, ch);
+    } else {
+      ctx.strokeStyle = '#3a4050';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(ox, oy, drawW, drawH);
+    }
+
+    // Corner labels
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '10px ui-monospace, monospace';
+    ctx.fillText('(0,0)', ox, oy - 12);
+    if (frame.declared) {
+      const br = '(' + frame.canvasW + ',' + frame.canvasH + ')';
+      const cx0 = ox + (0 - frame.minX) * scale;
+      const cy0 = oy + (0 - frame.minY) * scale;
+      const cw = frame.canvasW * scale;
+      const ch = frame.canvasH * scale;
+      ctx.fillText(br, cx0 + cw - ctx.measureText(br).width, cy0 + ch + 2);
+    }
+
+    // Regions
+    const totalRegions = regionsByMapping.reduce((a, r) => a + r.length, 0);
+    const showLabels = totalRegions <= 50;
+    regionsByMapping.forEach((regions, bi) => {
+      const { fill, stroke } = blockColor(bi);
+      regions.forEach((r, ri) => {
+        const rx = which === 'src' ? r.sx : r.dx;
+        const ry = which === 'src' ? r.sy : r.dy;
+        const rw = which === 'src' ? r.sw : r.dw;
+        const rh = which === 'src' ? r.sh : r.dh;
+        if (rw <= 0 || rh <= 0) return;
+        const sx = ox + (rx - frame.minX) * scale;
+        const sy = oy + (ry - frame.minY) * scale;
+        const sw = Math.max(1, rw * scale);
+        const sh = Math.max(1, rh * scale);
+        // Out-of-bounds detection: any part of the region lies outside declared canvas.
+        let oob = false;
+        if (frame.declared) {
+          if (rx < 0 || ry < 0 || rx + rw > frame.canvasW || ry + rh > frame.canvasH) oob = true;
+        }
+        ctx.fillStyle = fill;
+        ctx.fillRect(sx, sy, sw, sh);
+        if (oob) {
+          ctx.strokeStyle = '#ff6b6b';
+          ctx.lineWidth = 2;
+        } else {
+          ctx.strokeStyle = stroke;
+          ctx.lineWidth = 1.5;
+        }
+        ctx.strokeRect(sx, sy, sw, sh);
+        if (showLabels && sw > 18 && sh > 12) {
+          ctx.fillStyle = '#e6e8ec';
+          ctx.font = '9px ui-monospace, monospace';
+          ctx.textBaseline = 'top';
+          const m = state.mappings[bi];
+          const col = Math.floor(ri / m.matrixRows);
+          const row = ri % m.matrixRows;
+          const label = (m.matrixCols > 1 || m.matrixRows > 1) ? (col + ',' + row) : '';
+          if (label) ctx.fillText(label, sx + 2, sy + 2);
+        }
+      });
+    });
+
+    // Footer
+    ctx.fillStyle = '#9aa3b2';
+    ctx.font = '10px ui-monospace, monospace';
+    ctx.textBaseline = 'top';
+    const dimsText = frame.declared
+      ? (frame.canvasW + ' × ' + frame.canvasH + ' px')
+      : ('bbox ' + Math.round(spanX) + ' × ' + Math.round(spanY) + ' px');
+    ctx.fillText(dimsText, x + pad, y + h - footerH + 4);
+  }
+
+  function updateLegend() {
+    const el = document.getElementById('legend');
+    el.innerHTML = '';
+    state.mappings.forEach((m, i) => {
+      const { stroke } = blockColor(i);
+      const span = document.createElement('span');
+      const sw = document.createElement('span');
+      sw.className = 'swatch';
+      sw.style.background = stroke;
+      span.appendChild(sw);
+      const label = document.createTextNode(m.name || '#' + (i + 1));
+      span.appendChild(label);
+      el.appendChild(span);
+    });
+  }
+
+  let previewTimer = null;
+  function schedulePreview() {
+    if (previewTimer) clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => {
+      renderPreview();
+      updateLegend();
+    }, 80);
+  }
+
+  // ---------------------------------------------------------------------------
+  // i18n
+  // ---------------------------------------------------------------------------
+  function applyI18n() {
+    document.documentElement.lang = currentLang;
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+      el.innerHTML = t(el.getAttribute('data-i18n-html'));
+    });
+    document.getElementById('help-content').innerHTML = t('help.body');
+    document.getElementById('lang-pl').classList.toggle('active', currentLang === 'pl');
+    document.getElementById('lang-en').classList.toggle('active', currentLang === 'en');
+  }
+
+  function rerender() {
+    applyI18n();
+    renderCanvasPanel();
+    renderMappings();
+    updateStats();
+    updateLegend();
+    schedulePreview();
+  }
+
+  // ===========================================================================
+  // Event wiring
+  // ===========================================================================
+  function wireCanvasInput(id, key) {
+    const el = document.getElementById(id);
+    el.addEventListener('focus', () => el.select());
+    el.addEventListener('input', (e) => {
+      const raw = e.target.value;
+      const n = raw === '' ? 0 : parseInt(raw, 10);
+      state.canvas[key] = Number.isFinite(n) ? n : 0;
+      updateCanvasWarning();
+      // Canvas change can flip OOB status of existing mappings → revalidate all.
+      renderMappings();
+      updateStats();
+      schedulePreview();
+      debouncedPersist();
+    });
+  }
+
+  function attachHandlers() {
+    wireCanvasInput('canvas-src-w', 'sourceW');
+    wireCanvasInput('canvas-src-h', 'sourceH');
+    wireCanvasInput('canvas-dst-w', 'destW');
+    wireCanvasInput('canvas-dst-h', 'destH');
+
+    document.getElementById('btn-add-mapping').addEventListener('click', () => {
+      state.mappings.push(Engine.defaultMapping());
+      rerender();
+      debouncedPersist();
+    });
+    document.getElementById('btn-duplicate-last').addEventListener('click', () => {
+      if (state.mappings.length === 0) {
+        state.mappings.push(Engine.defaultMapping());
+      } else {
+        state.mappings.push(JSON.parse(JSON.stringify(state.mappings[state.mappings.length - 1])));
+      }
+      rerender();
+      debouncedPersist();
+    });
+    document.getElementById('btn-clear-all').addEventListener('click', () => {
+      if (state.mappings.length === 0) return;
+      if (!confirm(t('confirm.clearAll'))) return;
+      state.mappings = [Engine.defaultMapping()];
+      rerender();
+      persist();
+    });
+    document.getElementById('btn-export-json').addEventListener('click', () => {
+      const json = Exporter.toJSON(state);
+      Exporter.downloadBlob(json, 'pixera-mapping.json', 'application/json');
+    });
+    document.getElementById('btn-import-json').addEventListener('click', () => {
+      document.getElementById('file-import').click();
+    });
+    document.getElementById('file-import').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const { state: imported, wasLegacy } = Exporter.fromJSON(String(reader.result));
+          state.canvas = imported.canvas;
+          state.mappings = imported.mappings;
+          state.dupFirst = imported.dupFirst;
+          document.getElementById('chk-dup-first').checked = state.dupFirst;
+          rerender();
+          persist();
+          if (wasLegacy) alert(t('import.legacy'));
+        } catch (err) {
+          alert(t('import.invalid') + ': ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+    document.getElementById('chk-dup-first').addEventListener('change', (e) => {
+      state.dupFirst = !!e.target.checked;
+      updateStats();
+      debouncedPersist();
+    });
+    document.getElementById('btn-download').addEventListener('click', onDownload);
+    document.getElementById('toggle-help').addEventListener('click', () => {
+      showWelcomeModal();
+    });
+    document.getElementById('welcome-dismiss').addEventListener('click', () => {
+      hideWelcomeModal();
+      markWelcomeSeen();
+    });
+    document.getElementById('welcome-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'welcome-modal') {
+        hideWelcomeModal();
+        markWelcomeSeen();
+      }
+    });
+    document.getElementById('lang-pl').addEventListener('click', () => setLang('pl'));
+    document.getElementById('lang-en').addEventListener('click', () => setLang('en'));
+    document.getElementById('banner-v2-dismiss').addEventListener('click', () => {
+      document.getElementById('banner-v2').classList.add('hidden');
+      markWelcomedToV2();
+    });
+    window.addEventListener('resize', schedulePreview);
+  }
+
+  function setLang(l) {
+    if (l !== 'pl' && l !== 'en') return;
+    currentLang = l;
+    try { localStorage.setItem(LANG_KEY, l); } catch (e) {}
+    rerender();
+  }
+
+  async function onDownload() {
+    const canvasV = Engine.validateCanvas(state.canvas);
+    if (!canvasV.valid) {
+      alert(canvasV.errors.map(t).join('\n'));
+      return;
+    }
+    if (state.mappings.length === 0) {
+      alert(t('export.empty'));
+      return;
+    }
+    for (let i = 0; i < state.mappings.length; i++) {
+      const v = Engine.validateMapping(state.canvas, state.mappings[i]);
+      if (!v.valid) {
+        alert('Mapping #' + (i + 1) + ': ' + v.errors.map(t).join(', '));
+        return;
+      }
+    }
+    const totalRows = Engine.totalPixelCount(state.mappings);
+    if (totalRows === 0) {
+      alert(t('export.empty'));
+      return;
+    }
+    const estSize = totalRows * 22 + 60;
+    const LARGE = 500000;
+    if (totalRows > LARGE) {
+      const msg = t('confirm.largeOutput', {
+        n: totalRows.toLocaleString(),
+        size: formatBytes(estSize),
+      });
+      if (!confirm(msg)) return;
+    }
+    const btn = document.getElementById('btn-download');
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      const csv = totalRows > 50000
+        ? await Exporter.toCSVAsync(state.mappings, { dupFirst: state.dupFirst })
+        : Exporter.toCSV(state.mappings, { dupFirst: state.dupFirst });
+      Exporter.downloadBlob(csv, 'pixera-mapping.csv', 'text/csv;charset=utf-8');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = t('btn.downloadCsv');
+    }
+  }
+
+  // ===========================================================================
+  // Bootstrap
+  // ===========================================================================
+  function bootstrap() {
+    restoreLang();
+    const ok = restore();
+    if (!ok) {
+      state.canvas = Engine.defaultCanvas();
+      state.mappings = [Engine.defaultMapping()];
+      state.dupFirst = true;
+    }
+    document.getElementById('chk-dup-first').checked = state.dupFirst;
+    attachHandlers();
+    rerender();
+
+    // Show v1→v2 welcome banner once, only if user has legacy data
+    if (hasLegacyData() && !wasWelcomedToV2()) {
+      document.getElementById('banner-v2').classList.remove('hidden');
+    }
+
+    // First-visit welcome modal with usage info + Pixera guide link
+    if (!wasWelcomeSeen()) {
+      showWelcomeModal();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrap);
+  } else {
+    bootstrap();
+  }
+
+  // Dev console hook — useful for interactive debugging.
+  window.__PixeraMapping = {
+    Engine, Exporter, state,
+    debug() {
+      /* eslint-disable no-console */
+      console.log('canvas:', state.canvas);
+      state.mappings.forEach((m, i) => {
+        console.log('mapping', i, m);
+        console.log('  regions:', Engine.generateRegions(m));
+        console.log('  validation:', Engine.validateMapping(state.canvas, m));
+      });
+      /* eslint-enable no-console */
+    },
+  };
+})();
+</script>
+</body>
+</html>
