@@ -35,27 +35,79 @@
     padding: 14px 20px;
     background: var(--panel);
     border-bottom: 1px solid var(--border);
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px;
+    gap: 14px 18px;
   }
   header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0.01em; }
-  header .title-block { display: flex; flex-direction: column; gap: 3px; }
-  header .subtitle {
-    font-size: 12px;
-    color: var(--text-dim);
+  header .header-left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    justify-self: start;
   }
-  header .made-by { font-size: 11px; color: var(--text-dim); }
+  header .title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  header .version-badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 11px;
+    line-height: 1.2;
+    font-weight: 600;
+  }
+  header .header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    justify-self: center;
+  }
+  header .made-by {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.1;
+  }
   header .made-by a { color: var(--accent); text-decoration: none; font-weight: 500; }
   header .made-by a:hover { text-decoration: underline; }
-  header .tools { display: flex; align-items: center; gap: 8px; }
+  header .tools {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  header .tools > button,
+  header .tools > .header-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 16px;
+    line-height: 1.1;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  header .header-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    justify-self: end;
+  }
   header .header-link {
     color: var(--accent);
     text-decoration: none;
     font-size: 13px;
-    padding: 6px 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
     transition: background 0.15s, border-color 0.15s;
@@ -64,25 +116,56 @@
   main {
     max-width: 1280px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 14px 20px 20px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
   }
   .panel {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 14px;
+    padding: 12px;
     box-shadow: 0 10px 24px rgba(0,0,0,0.14);
   }
   .panel h2 {
-    margin: 0 0 10px 0;
+    margin: 0;
     font-size: 14px;
     font-weight: 600;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.6px;
+  }
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .panel-content.compact { display: flex; flex-direction: column; gap: 10px; }
+  .panel.collapsed .panel-content { display: none; }
+  .panel-toggle {
+    min-width: 34px;
+    padding: 6px 10px;
+    font-weight: 700;
+  }
+  .ghost-btn {
+    background: transparent;
+    box-shadow: none;
+  }
+  .workspace-main {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
   }
   .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   button, .btn {
@@ -316,10 +399,69 @@
   }
   .stats .stat-value { font-weight: 600; font-variant-numeric: tabular-nums; }
 
+  .preview-panel { min-width: 0; }
+  .preview-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .preview-zoom-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .preview-zoom-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .preview-zoom-group .toolbar {
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .preview-scale {
+    font-size: 12px;
+    color: var(--text-dim);
+    min-width: 54px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .preview-frame {
+    position: relative;
+  }
+  .preview-frame canvas {
+    cursor: grab;
+    touch-action: none;
+  }
+  .preview-frame.dragging canvas {
+    cursor: grabbing;
+  }
+  .preview-frame.dragging {
+    user-select: none;
+  }
+  .preview-wheel-hint {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: rgba(15, 17, 21, 0.72);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-dim);
+    font-size: 11px;
+    pointer-events: none;
+  }
   canvas {
     display: block;
     width: 100%;
-    height: 420px;
+    height: 360px;
     background: var(--bg);
     border-radius: 6px;
     border: 1px solid var(--border);
@@ -340,6 +482,7 @@
   }
   .lang-toggle {
     display: inline-flex;
+    align-items: stretch;
     border: 1px solid var(--border);
     border-radius: 6px;
     overflow: hidden;
@@ -347,33 +490,12 @@
   .lang-toggle button {
     border: none;
     border-radius: 0;
-    padding: 6px 10px;
+    min-height: 36px;
+    padding: 0 12px;
     background: var(--panel-2);
+    line-height: 1;
   }
   .lang-toggle button.active { background: var(--accent); color: white; }
-
-  .footer-bar {
-    position: sticky;
-    bottom: 0;
-    background: rgba(23, 26, 33, 0.92);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid var(--border);
-    padding: 12px 20px;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    z-index: 10;
-  }
-  .checkbox-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-  .checkbox-row input { margin: 0; }
 
   .help {
     background: var(--panel-2);
@@ -403,6 +525,8 @@
     line-height: 1.55;
   }
   .hint-box strong { color: var(--text); }
+  .hints-hidden .hint-box,
+  .hints-hidden [data-ui-hint] { display: none !important; }
 
   .banner {
     background: rgba(79, 140, 255, 0.08);
@@ -450,32 +574,79 @@
     display: flex; justify-content: flex-end; gap: 8px;
   }
   .hidden { display: none !important; }
-  .row-gap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   input[type="file"] { display: none; }
+  @media (max-width: 980px) {
+    .preview-toolbar {
+      grid-template-columns: 1fr;
+    }
+    canvas {
+      height: 300px;
+    }
+  }
   @media (max-width: 720px) {
-    header { align-items: flex-start; }
-    header .tools { width: 100%; flex-wrap: wrap; }
-    .footer-bar { padding: 12px 14px; }
-    .footer-bar .row-gap { width: 100%; justify-content: space-between; }
-    #btn-download { width: 100%; }
+    header {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    header .header-left,
+    header .header-actions,
+    header .header-right {
+      width: 100%;
+    }
+    header .header-left {
+      gap: 6px;
+    }
+    header .tools {
+      width: 100%;
+    }
+    header .header-right {
+      justify-content: flex-start;
+    }
+    main {
+      padding: 12px 12px 18px;
+      gap: 10px;
+    }
+    .panel {
+      padding: 10px;
+    }
+    #btn-download-header { width: 100%; }
     .mapping-summary { white-space: normal; }
+    .panel-header,
+    .preview-toolbar {
+      align-items: flex-start;
+    }
+    .panel-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+    canvas {
+      height: 250px;
+    }
   }
 </style>
 </head>
 <body>
 <header>
-  <div class="title-block">
-    <h1 data-i18n="app.title">Pixel Mapping Tool for Pixera</h1>
-    <span class="subtitle" data-i18n="app.subtitle">Fast CSV generator for Pixera pixel mapping</span>
+  <div class="header-left">
+    <div class="title-row">
+      <h1 data-i18n="app.title">Pixel Mapping Tool for Pixera</h1>
+      <span class="version-badge">v1</span>
+    </div>
     <span class="made-by">Made by <a href="https://ltt.com.pl" target="_blank" rel="noopener noreferrer">LTT</a></span>
   </div>
-  <div class="tools">
+  <div class="header-actions">
+    <div class="tools">
+      <button id="btn-download-header" class="primary" data-i18n="btn.downloadCsv">Pobierz CSV</button>
+      <button id="toggle-hints" class="ghost-btn" data-i18n="btn.hideHints">Ukryj podpowiedzi</button>
+      <a href="https://help.pixera.one/livetab/pixel-based-video-mapping" target="_blank" rel="noopener noreferrer" class="header-link" data-i18n="btn.pixeraGuide">Poradnik Pixera</a>
+      <button id="toggle-help" data-i18n="btn.help">Pomoc</button>
+    </div>
+  </div>
+  <div class="header-right">
     <div class="lang-toggle" role="group" aria-label="Language">
       <button id="lang-pl" class="active">PL</button>
       <button id="lang-en">EN</button>
     </div>
-    <a href="https://help.pixera.one/livetab/pixel-based-video-mapping" target="_blank" rel="noopener noreferrer" class="header-link" data-i18n="btn.pixeraGuide">Poradnik Pixera ↗</a>
-    <button id="toggle-help" data-i18n="btn.help">Pomoc</button>
   </div>
 </header>
 
@@ -497,82 +668,134 @@
 </div>
 
 <main>
-  <section class="panel">
-    <h2 data-i18n="section.preview">Podgląd</h2>
-    <canvas id="preview" width="800" height="420"></canvas>
-    <div class="legend" id="legend"></div>
-    <div style="margin-top: 8px; font-size: 11px; color: var(--text-dim);" data-i18n="preview.hint"></div>
-  </section>
-
-  <section class="panel">
-    <h2 data-i18n="section.canvas">Canvas</h2>
-    <div class="hint-box" data-i18n-html="hint.canvas"></div>
-    <div class="canvas-sides">
-      <div class="side-panel side-src">
-        <div class="side-title"><span class="side-dot"></span><span data-i18n="side.source">Source</span></div>
-        <div class="field-row">
-          <div class="field">
-            <label data-i18n="field.canvasW">W</label>
-            <input type="number" step="1" inputmode="numeric" id="canvas-src-w" placeholder="1920">
-          </div>
-          <div class="field">
-            <label data-i18n="field.canvasH">H</label>
-            <input type="number" step="1" inputmode="numeric" id="canvas-src-h" placeholder="1080">
-          </div>
+  <div class="workspace">
+    <section class="panel preview-panel" id="preview-panel">
+      <div class="panel-header">
+        <h2 data-i18n="section.preview">Podgląd</h2>
+        <div class="panel-actions">
+          <button class="panel-toggle" data-target="preview-panel" aria-expanded="true">−</button>
         </div>
       </div>
-      <div class="side-panel side-dst">
-        <div class="side-title"><span class="side-dot"></span><span data-i18n="side.destination">Destination</span></div>
-        <div class="field-row">
-          <div class="field">
-            <label data-i18n="field.canvasW">W</label>
-            <input type="number" step="1" inputmode="numeric" id="canvas-dst-w" placeholder="4000">
+      <div class="panel-content compact">
+        <div class="preview-toolbar">
+          <div class="preview-zoom-group">
+            <span class="preview-zoom-title" data-i18n="side.source">Source</span>
+            <div class="toolbar">
+              <button id="btn-zoom-out-src" aria-label="Zoom out source">−</button>
+              <span class="preview-scale" id="preview-zoom-label-src">100%</span>
+              <button id="btn-zoom-in-src" aria-label="Zoom in source">+</button>
+              <button id="btn-zoom-reset-src" data-i18n="btn.resetZoom">Reset</button>
+            </div>
           </div>
-          <div class="field">
-            <label data-i18n="field.canvasH">H</label>
-            <input type="number" step="1" inputmode="numeric" id="canvas-dst-h" placeholder="2000">
+          <div class="preview-zoom-group">
+            <span class="preview-zoom-title" data-i18n="side.destination">Destination</span>
+            <div class="toolbar">
+              <button id="btn-zoom-out-dst" aria-label="Zoom out destination">−</button>
+              <span class="preview-scale" id="preview-zoom-label-dst">100%</span>
+              <button id="btn-zoom-in-dst" aria-label="Zoom in destination">+</button>
+              <button id="btn-zoom-reset-dst" data-i18n="btn.resetZoom">Reset</button>
+            </div>
           </div>
         </div>
+        <div class="preview-frame" id="preview-frame">
+          <canvas id="preview" width="800" height="420"></canvas>
+          <div class="preview-wheel-hint" data-ui-hint data-i18n="preview.zoomHint">Scroll over each side = zoom</div>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div style="font-size: 11px; color: var(--text-dim);" data-ui-hint data-i18n="preview.hint"></div>
       </div>
+    </section>
+
+    <div class="workspace-main">
+      <section class="panel" id="canvas-panel">
+        <div class="panel-header">
+          <h2 data-i18n="section.canvas">Canvas</h2>
+          <div class="panel-actions">
+            <button class="panel-toggle" data-target="canvas-panel" aria-expanded="true">−</button>
+          </div>
+        </div>
+        <div class="panel-content compact">
+          <div class="hint-box" data-i18n-html="hint.canvas"></div>
+          <div class="canvas-sides">
+            <div class="side-panel side-src">
+              <div class="side-title"><span class="side-dot"></span><span data-i18n="side.source">Source</span></div>
+              <div class="field-row">
+                <div class="field">
+                  <label data-i18n="field.canvasW">W</label>
+                  <input type="number" step="1" inputmode="numeric" id="canvas-src-w" placeholder="1920">
+                </div>
+                <div class="field">
+                  <label data-i18n="field.canvasH">H</label>
+                  <input type="number" step="1" inputmode="numeric" id="canvas-src-h" placeholder="1080">
+                </div>
+              </div>
+            </div>
+            <div class="side-panel side-dst">
+              <div class="side-title"><span class="side-dot"></span><span data-i18n="side.destination">Destination</span></div>
+              <div class="field-row">
+                <div class="field">
+                  <label data-i18n="field.canvasW">W</label>
+                  <input type="number" step="1" inputmode="numeric" id="canvas-dst-w" placeholder="4000">
+                </div>
+                <div class="field">
+                  <label data-i18n="field.canvasH">H</label>
+                  <input type="number" step="1" inputmode="numeric" id="canvas-dst-h" placeholder="2000">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="canvas-warn" class="warnings hidden"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="mappings-panel">
+        <div class="panel-header">
+          <h2 data-i18n="section.mappings">Mapowania</h2>
+          <div class="panel-actions">
+            <button class="panel-toggle" data-target="mappings-panel" aria-expanded="true">−</button>
+          </div>
+        </div>
+        <div class="panel-content compact">
+          <div class="hint-box" data-i18n-html="hint.mapping"></div>
+          <div id="mappings-container"></div>
+          <div class="toolbar">
+            <button id="btn-add-mapping" data-i18n="btn.addMapping">+ Dodaj mapowanie</button>
+            <button id="btn-duplicate-last" data-i18n="btn.duplicate">Duplikuj ostatnie</button>
+            <button id="btn-import-json" data-i18n="btn.importJson">Importuj JSON</button>
+            <button id="btn-export-json" data-i18n="btn.exportJson">Eksportuj JSON</button>
+            <span id="download-warn" style="color: var(--warn); font-size: 12px;"></span>
+            <button id="btn-clear-all" class="danger" data-i18n="btn.clearAll">Wyczyść wszystko</button>
+            <input type="file" id="file-import" accept=".json,application/json">
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="help-panel" style="display: none;">
+        <div class="panel-header">
+          <h2 data-i18n="section.help">Pomoc</h2>
+          <div class="panel-actions">
+            <button class="panel-toggle" data-target="help-panel" aria-expanded="true">−</button>
+          </div>
+        </div>
+        <div class="panel-content compact">
+          <div class="help" id="help-content"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="stats-panel">
+        <div class="panel-header">
+          <h2 data-i18n="section.stats">Statystyki</h2>
+          <div class="panel-actions">
+            <button class="panel-toggle" data-target="stats-panel" aria-expanded="true">−</button>
+          </div>
+        </div>
+        <div class="panel-content compact">
+          <div class="stats" id="stats"></div>
+        </div>
+      </section>
     </div>
-    <div id="canvas-warn" class="warnings hidden"></div>
-  </section>
-
-  <section class="panel">
-    <h2 data-i18n="section.mappings">Mapowania</h2>
-    <div class="hint-box" data-i18n-html="hint.mapping"></div>
-    <div id="mappings-container"></div>
-    <div class="toolbar" style="margin-top: 10px;">
-      <button id="btn-add-mapping" data-i18n="btn.addMapping">+ Dodaj mapowanie</button>
-      <button id="btn-duplicate-last" data-i18n="btn.duplicate">Duplikuj ostatnie</button>
-      <button id="btn-import-json" data-i18n="btn.importJson">Importuj JSON</button>
-      <button id="btn-export-json" data-i18n="btn.exportJson">Eksportuj JSON</button>
-      <button id="btn-clear-all" class="danger" data-i18n="btn.clearAll">Wyczyść wszystko</button>
-      <input type="file" id="file-import" accept=".json,application/json">
-    </div>
-  </section>
-
-  <section class="panel" id="help-panel" style="display: none;">
-    <h2 data-i18n="section.help">Pomoc</h2>
-    <div class="help" id="help-content"></div>
-  </section>
-
-  <section class="panel">
-    <h2 data-i18n="section.stats">Statystyki</h2>
-    <div class="stats" id="stats"></div>
-  </section>
+  </div>
 </main>
-
-<div class="footer-bar">
-  <div class="checkbox-row">
-    <input type="checkbox" id="chk-dup-first" checked>
-    <label for="chk-dup-first" data-i18n="opt.dupFirst">Duplikuj pierwszy wiersz (Pixera)</label>
-  </div>
-  <div class="row-gap">
-    <span id="download-warn" style="color: var(--warn); font-size: 12px;"></span>
-    <button id="btn-download" class="primary" data-i18n="btn.downloadCsv">⬇ Pobierz CSV</button>
-  </div>
-</div>
 
 <script>
 (function () {
@@ -584,9 +807,8 @@
   const I18N = {
     pl: {
       'app.title': 'Pixel Mapping Tool for Pixera',
-      'app.subtitle': 'Szybki generator CSV do pixel mappingu w Pixerze',
       'btn.help': 'Pomoc',
-      'btn.pixeraGuide': 'Poradnik Pixera ↗',
+      'btn.pixeraGuide': 'Poradnik Pixera',
       'welcome.title': 'Witaj w Pixel Mapping Tool',
       'welcome.start': 'Zaczynamy',
       'welcome.body': `
@@ -606,10 +828,13 @@
 `,
       'btn.addMapping': '+ Dodaj mapowanie',
       'btn.duplicate': 'Duplikuj ostatnie',
+      'btn.hideHints': 'Ukryj podpowiedzi',
+      'btn.showHints': 'Pokaż podpowiedzi',
       'btn.importJson': 'Importuj JSON',
       'btn.exportJson': 'Eksportuj JSON',
       'btn.clearAll': 'Wyczyść wszystko',
-      'btn.downloadCsv': '⬇ Pobierz CSV',
+      'btn.downloadCsv': 'Pobierz CSV',
+      'btn.resetZoom': 'Reset',
       'btn.remove': 'Usuń',
       'btn.duplicateMapping': 'Duplikuj',
       'banner.v2Welcome': 'Wprowadzono nowy model danych (v2): <strong>wspólny canvas</strong> dla wszystkich mapowań. Poprzednia konfiguracja (v1) nie została automatycznie zmigrowana. Jeśli potrzebujesz starych danych, zaimportuj plik JSON przez <em>Importuj JSON</em>.',
@@ -646,7 +871,7 @@
       'stat.rows': 'Wierszy CSV',
       'stat.size': 'Szacowany rozmiar',
       'preview.hint': 'Po lewej Source, po prawej Destination. Każde mapowanie ma swój kolor. Czerwone obrysy oznaczają regiony wychodzące poza canvas.',
-      'opt.dupFirst': 'Duplikuj pierwszy wiersz (Pixera)',
+      'preview.zoomHint': 'Scroll lub przeciągnij nad każdą połową',
       'err.canvasEmpty': 'Ustaw wymiary canvasu (Source i Destination) aby wyeksportować',
       'err.regionNonneg': 'Start regionu >= 0',
       'err.regionSizePositive': 'Rozmiar regionu Source > 0',
@@ -685,9 +910,8 @@
     },
     en: {
       'app.title': 'Pixel Mapping Tool for Pixera',
-      'app.subtitle': 'Fast CSV generator for Pixera pixel mapping',
       'btn.help': 'Help',
-      'btn.pixeraGuide': 'Pixera guide ↗',
+      'btn.pixeraGuide': 'Pixera guide',
       'welcome.title': 'Welcome to Pixel Mapping Tool',
       'welcome.start': 'Get started',
       'welcome.body': `
@@ -707,10 +931,13 @@
 `,
       'btn.addMapping': '+ Add mapping',
       'btn.duplicate': 'Duplicate last',
+      'btn.hideHints': 'Hide hints',
+      'btn.showHints': 'Show hints',
       'btn.importJson': 'Import JSON',
       'btn.exportJson': 'Export JSON',
       'btn.clearAll': 'Clear all',
-      'btn.downloadCsv': '⬇ Download CSV',
+      'btn.downloadCsv': 'Download CSV',
+      'btn.resetZoom': 'Reset',
       'btn.remove': 'Remove',
       'btn.duplicateMapping': 'Duplicate',
       'banner.v2Welcome': 'New data model introduced (v2): <strong>shared canvas</strong> across all mappings. Previous v1 configuration was not auto-migrated. If you need the old data, import it via <em>Import JSON</em>.',
@@ -747,7 +974,7 @@
       'stat.rows': 'CSV rows',
       'stat.size': 'Estimated size',
       'preview.hint': 'Source on the left, Destination on the right. Each mapping has its own color. Red outlines mark regions outside the canvas.',
-      'opt.dupFirst': 'Duplicate first row (Pixera)',
+      'preview.zoomHint': 'Scroll or drag over each side',
       'err.canvasEmpty': 'Set canvas dimensions (Source and Destination) before exporting',
       'err.regionNonneg': 'Region start >= 0',
       'err.regionSizePositive': 'Source region size > 0',
@@ -1140,6 +1367,17 @@
     mappings: [],
     dupFirst: true,
   };
+  const uiState = {
+    previewZoomSrc: 1,
+    previewZoomDst: 1,
+    previewPanSrc: { x: 0, y: 0 },
+    previewPanDst: { x: 0, y: 0 },
+    hintsHidden: false,
+  };
+  const previewState = {
+    metrics: { src: null, dst: null },
+    drag: null,
+  };
 
   function persist() {
     try {
@@ -1433,18 +1671,22 @@
     return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
   }
 
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
   function updateStats() {
     const el = document.getElementById('stats');
     const mappings = state.mappings;
     let regions = 0;
     for (const m of mappings) regions += Engine.regionCount(m);
     const rows = Engine.totalPixelCount(mappings);
-    const estSize = 60 + rows * 22 + (state.dupFirst && rows > 0 ? 22 : 0);
+    const estSize = 60 + rows * 22 + (rows > 0 ? 22 : 0);
     el.innerHTML = '';
     const items = [
       { label: t('stat.mappings'), value: mappings.length },
       { label: t('stat.regions'), value: regions },
-      { label: t('stat.rows'), value: rows + (state.dupFirst && rows > 0 ? 1 : 0) },
+      { label: t('stat.rows'), value: rows + (rows > 0 ? 1 : 0) },
       { label: t('stat.size'), value: formatBytes(estSize) },
     ];
     for (const it of items) {
@@ -1496,17 +1738,16 @@
     const padding = 14;
     const headerHeight = 22;
     const footerHeight = 22;
-
     const regionsByMapping = state.mappings.map(Engine.generateRegions);
 
-    drawPanel(ctx, 0, 0, halfW, H, padding, headerHeight, footerHeight,
+    previewState.metrics.src = drawPanel(ctx, 0, 0, halfW, H, padding, headerHeight, footerHeight,
               t('source.header'),
               { w: state.canvas.sourceW, h: state.canvas.sourceH },
-              regionsByMapping, 'src');
-    drawPanel(ctx, halfW, 0, halfW, H, padding, headerHeight, footerHeight,
+              regionsByMapping, 'src', uiState.previewZoomSrc, uiState.previewPanSrc);
+    previewState.metrics.dst = drawPanel(ctx, halfW, 0, halfW, H, padding, headerHeight, footerHeight,
               t('dest.header'),
               { w: state.canvas.destW, h: state.canvas.destH },
-              regionsByMapping, 'dst');
+              regionsByMapping, 'dst', uiState.previewZoomDst, uiState.previewPanDst);
 
     ctx.strokeStyle = '#2a2f3a';
     ctx.beginPath();
@@ -1515,7 +1756,7 @@
     ctx.stroke();
   }
 
-  function drawPanel(ctx, x, y, w, h, pad, headerH, footerH, title, canvasDims, regionsByMapping, which) {
+  function drawPanel(ctx, x, y, w, h, pad, headerH, footerH, title, canvasDims, regionsByMapping, which, zoom, pan) {
     // Title
     ctx.fillStyle = '#e6e8ec';
     ctx.font = '600 12px system-ui, sans-serif';
@@ -1561,7 +1802,7 @@
         ctx.fillStyle = '#3a4050';
         ctx.font = '11px system-ui, sans-serif';
         ctx.fillText('— ' + t('warn.canvasZero'), x + pad, y + headerH + 4);
-        return;
+        return null;
       }
       const padX = Math.max(1, maxX - minX) * 0.1;
       const padY = Math.max(1, maxY - minY) * 0.1;
@@ -1580,11 +1821,24 @@
 
     const plotW = w - 2 * pad;
     const plotH = h - headerH - footerH;
-    const scale = Math.min(plotW / spanX, plotH / spanY);
+    const scale = Math.min(plotW / spanX, plotH / spanY) * zoom;
     const drawW = spanX * scale;
     const drawH = spanY * scale;
-    const ox = x + pad + (plotW - drawW) / 2;
-    const oy = y + headerH + (plotH - drawH) / 2;
+    const maxPanX = Math.max(0, (drawW - plotW) / (2 * scale));
+    const maxPanY = Math.max(0, (drawH - plotH) / (2 * scale));
+    const rawPanX = pan && Number.isFinite(pan.x) ? pan.x : 0;
+    const rawPanY = pan && Number.isFinite(pan.y) ? pan.y : 0;
+    const panX = clamp(rawPanX, -maxPanX, maxPanX);
+    const panY = clamp(rawPanY, -maxPanY, maxPanY);
+    const ox = x + pad + (plotW - drawW) / 2 + panX * scale;
+    const oy = y + headerH + (plotH - drawH) / 2 + panY * scale;
+    const clipX = x + pad;
+    const clipY = y + headerH;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(clipX, clipY, plotW, plotH);
+    ctx.clip();
 
     // Frame background (full scaled viewport)
     ctx.fillStyle = '#121820';
@@ -1662,6 +1916,7 @@
         }
       });
     });
+    ctx.restore();
 
     // Footer
     ctx.fillStyle = '#9aa3b2';
@@ -1671,6 +1926,8 @@
       ? (frame.canvasW + ' × ' + frame.canvasH + ' px')
       : ('bbox ' + Math.round(spanX) + ' × ' + Math.round(spanY) + ' px');
     ctx.fillText(dimsText, x + pad, y + h - footerH + 4);
+
+    return { scale, maxPanX, maxPanY };
   }
 
   function updateLegend() {
@@ -1689,13 +1946,13 @@
     });
   }
 
-  let previewTimer = null;
+  let previewFrameRequest = null;
   function schedulePreview() {
-    if (previewTimer) clearTimeout(previewTimer);
-    previewTimer = setTimeout(() => {
+    if (previewFrameRequest !== null) return;
+    previewFrameRequest = window.requestAnimationFrame(() => {
+      previewFrameRequest = null;
       renderPreview();
-      updateLegend();
-    }, 80);
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -1710,12 +1967,83 @@
       el.innerHTML = t(el.getAttribute('data-i18n-html'));
     });
     document.getElementById('help-content').innerHTML = t('help.body');
+    const toggleHintsBtn = document.getElementById('toggle-hints');
+    if (toggleHintsBtn) {
+      toggleHintsBtn.textContent = uiState.hintsHidden ? t('btn.showHints') : t('btn.hideHints');
+    }
     document.getElementById('lang-pl').classList.toggle('active', currentLang === 'pl');
     document.getElementById('lang-en').classList.toggle('active', currentLang === 'en');
   }
 
+  function updateHintVisibility() {
+    document.body.classList.toggle('hints-hidden', uiState.hintsHidden);
+    const toggleHintsBtn = document.getElementById('toggle-hints');
+    if (toggleHintsBtn) {
+      toggleHintsBtn.textContent = uiState.hintsHidden ? t('btn.showHints') : t('btn.hideHints');
+    }
+  }
+
+  function updatePreviewZoomLabels() {
+    const srcLabel = document.getElementById('preview-zoom-label-src');
+    const dstLabel = document.getElementById('preview-zoom-label-dst');
+    if (srcLabel) srcLabel.textContent = Math.round(uiState.previewZoomSrc * 100) + '%';
+    if (dstLabel) dstLabel.textContent = Math.round(uiState.previewZoomDst * 100) + '%';
+  }
+
+  function resetPreviewViewport(which) {
+    if (which === 'dst') {
+      uiState.previewZoomDst = 1;
+      uiState.previewPanDst = { x: 0, y: 0 };
+    } else {
+      uiState.previewZoomSrc = 1;
+      uiState.previewPanSrc = { x: 0, y: 0 };
+    }
+    updatePreviewZoomLabels();
+    schedulePreview();
+  }
+
+  function setPreviewZoom(which, nextZoom) {
+    const clamped = Math.max(0.5, Math.min(3, Math.round(nextZoom * 100) / 100));
+    const key = which === 'dst' ? 'previewZoomDst' : 'previewZoomSrc';
+    if (clamped === uiState[key]) return;
+    uiState[key] = clamped;
+    updatePreviewZoomLabels();
+    schedulePreview();
+  }
+
+  function setPreviewPan(which, dx, dy) {
+    const key = which === 'dst' ? 'previewPanDst' : 'previewPanSrc';
+    const current = uiState[key];
+    const metric = previewState.metrics[which];
+    const nextX = current.x + dx;
+    const nextY = current.y + dy;
+    uiState[key] = {
+      x: metric ? clamp(nextX, -metric.maxPanX, metric.maxPanX) : nextX,
+      y: metric ? clamp(nextY, -metric.maxPanY, metric.maxPanY) : nextY,
+    };
+    schedulePreview();
+  }
+
+  function previewSideFromEvent(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return (e.clientX - rect.left) < (rect.width / 2) ? 'src' : 'dst';
+  }
+
+  function togglePanel(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    const collapsed = panel.classList.toggle('collapsed');
+    const toggle = panel.querySelector('.panel-toggle[data-target="' + panelId + '"]');
+    if (toggle) {
+      toggle.textContent = collapsed ? '+' : '−';
+      toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    }
+  }
+
   function rerender() {
     applyI18n();
+    updateHintVisibility();
+    updatePreviewZoomLabels();
     renderCanvasPanel();
     renderMappings();
     updateStats();
@@ -1786,7 +2114,6 @@
           state.canvas = imported.canvas;
           state.mappings = imported.mappings;
           state.dupFirst = imported.dupFirst;
-          document.getElementById('chk-dup-first').checked = state.dupFirst;
           rerender();
           persist();
           if (wasLegacy) alert(t('import.legacy'));
@@ -1797,12 +2124,62 @@
       reader.readAsText(file);
       e.target.value = '';
     });
-    document.getElementById('chk-dup-first').addEventListener('change', (e) => {
-      state.dupFirst = !!e.target.checked;
-      updateStats();
-      debouncedPersist();
+    document.getElementById('btn-download-header').addEventListener('click', onDownload);
+    document.getElementById('toggle-hints').addEventListener('click', () => {
+      uiState.hintsHidden = !uiState.hintsHidden;
+      updateHintVisibility();
     });
-    document.getElementById('btn-download').addEventListener('click', onDownload);
+    document.getElementById('btn-zoom-in-src').addEventListener('click', () => setPreviewZoom('src', uiState.previewZoomSrc + 0.1));
+    document.getElementById('btn-zoom-out-src').addEventListener('click', () => setPreviewZoom('src', uiState.previewZoomSrc - 0.1));
+    document.getElementById('btn-zoom-reset-src').addEventListener('click', () => resetPreviewViewport('src'));
+    document.getElementById('btn-zoom-in-dst').addEventListener('click', () => setPreviewZoom('dst', uiState.previewZoomDst + 0.1));
+    document.getElementById('btn-zoom-out-dst').addEventListener('click', () => setPreviewZoom('dst', uiState.previewZoomDst - 0.1));
+    document.getElementById('btn-zoom-reset-dst').addEventListener('click', () => resetPreviewViewport('dst'));
+    const previewFrame = document.getElementById('preview-frame');
+    previewFrame.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const which = previewSideFromEvent(e);
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      const currentZoom = which === 'dst' ? uiState.previewZoomDst : uiState.previewZoomSrc;
+      setPreviewZoom(which, currentZoom + delta);
+    }, { passive: false });
+    previewFrame.addEventListener('pointerdown', (e) => {
+      const which = previewSideFromEvent(e);
+      previewState.drag = {
+        which,
+        lastX: e.clientX,
+        lastY: e.clientY,
+      };
+      previewFrame.classList.add('dragging');
+      if (previewFrame.setPointerCapture) previewFrame.setPointerCapture(e.pointerId);
+    });
+    previewFrame.addEventListener('pointermove', (e) => {
+      if (!previewState.drag) return;
+      const { which, lastX, lastY } = previewState.drag;
+      const dxPx = e.clientX - lastX;
+      const dyPx = e.clientY - lastY;
+      previewState.drag.lastX = e.clientX;
+      previewState.drag.lastY = e.clientY;
+      const metric = previewState.metrics[which];
+      if (!metric || !metric.scale) return;
+      setPreviewPan(which, dxPx / metric.scale, dyPx / metric.scale);
+    });
+    const stopPreviewDrag = (e) => {
+      if (!previewState.drag) return;
+      previewState.drag = null;
+      previewFrame.classList.remove('dragging');
+      if (previewFrame.releasePointerCapture) {
+        try { previewFrame.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
+    };
+    previewFrame.addEventListener('pointerup', stopPreviewDrag);
+    previewFrame.addEventListener('pointercancel', stopPreviewDrag);
+    previewFrame.addEventListener('pointerleave', (e) => {
+      if ((e.buttons || 0) === 0) stopPreviewDrag(e);
+    });
+    document.querySelectorAll('.panel-toggle').forEach((btn) => {
+      btn.addEventListener('click', () => togglePanel(btn.dataset.target));
+    });
     document.getElementById('toggle-help').addEventListener('click', () => {
       showWelcomeModal();
     });
@@ -1863,7 +2240,7 @@
       });
       if (!confirm(msg)) return;
     }
-    const btn = document.getElementById('btn-download');
+    const btn = document.getElementById('btn-download-header');
     btn.disabled = true;
     btn.textContent = '…';
     try {
@@ -1888,7 +2265,6 @@
       state.mappings = [Engine.defaultMapping()];
       state.dupFirst = true;
     }
-    document.getElementById('chk-dup-first').checked = state.dupFirst;
     attachHandlers();
     rerender();
 
