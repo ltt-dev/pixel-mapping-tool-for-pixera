@@ -23,14 +23,14 @@ Dla osób pracujących z:
 - eksportuje CSV zgodny z Pixera.
 
 ### Jak uruchomić
-Po prostu otwórz plik `index.html` w przeglądarce.
+Po prostu otwórz plik `pixel-mapping-tool-for-pixera.html` w przeglądarce.
 
 Przykłady:
 
 ```bash
-open index.html
-xdg-open index.html
-start index.html
+open pixel-mapping-tool-for-pixera.html
+xdg-open pixel-mapping-tool-for-pixera.html
+start pixel-mapping-tool-for-pixera.html
 ```
 
 Możesz też po prostu kliknąć plik dwa razy.
@@ -87,14 +87,14 @@ For people working with:
 - exports Pixera-compatible CSV.
 
 ### How to start
-Open `index.html` in your browser.
+Open `pixel-mapping-tool-for-pixera.html` in your browser.
 
 Examples:
 
 ```bash
-open index.html
-xdg-open index.html
-start index.html
+open pixel-mapping-tool-for-pixera.html
+xdg-open pixel-mapping-tool-for-pixera.html
+start pixel-mapping-tool-for-pixera.html
 ```
 
 You can also just double-click the file.
