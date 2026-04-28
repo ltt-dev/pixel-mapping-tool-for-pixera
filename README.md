@@ -8,6 +8,9 @@ Simple offline CSV generator for Pixera pixel mapping.
 To proste narzędzie pomaga przygotować plik CSV do **Pixel Based Video Mapping** w **Pixerze**.  
 Zamiast ustawiać każdy obszar ręcznie w programie, wpisujesz liczby w formularzu, sprawdzasz podgląd i pobierasz gotowy plik.
 
+Oficjalna dokumentacja Pixera:  
+<https://help.pixera.one/livetab/pixel-based-video-mapping>
+
 ### Dla kogo
 Dla osób pracujących z:
 - ekranami LED,
@@ -57,13 +60,6 @@ Możesz też po prostu kliknąć plik dwa razy.
 - Możesz użyć **Import JSON** i **Eksport JSON**, aby przenosić konfiguracje.
 - `warp.CSV` to plik referencyjny używany do sprawdzania zgodności eksportu.
 
-### Uwaga
-To narzędzie nie zastępuje Pixera.  
-Ono tylko przygotowuje poprawny plik CSV szybciej i wygodniej.
-
-Oficjalna dokumentacja Pixera:  
-<https://help.pixera.one/livetab/pixel-based-video-mapping>
-
 ---
 
 ## English Version
@@ -71,6 +67,9 @@ Oficjalna dokumentacja Pixera:
 ### What it is
 This tool helps you generate a CSV file for **Pixel Based Video Mapping** in **Pixera**.  
 Instead of setting every region by hand inside Pixera, you enter values in a form, check the preview, and download a ready-to-use file.
+
+Official Pixera documentation:  
+<https://help.pixera.one/livetab/pixel-based-video-mapping>
 
 ### Who it is for
 For people working with:
@@ -120,10 +119,3 @@ You can also just double-click the file.
 - Settings are saved automatically in the browser.
 - You can use **Import JSON** and **Export JSON** to move configurations between machines.
 - `warp.CSV` is the reference file used to verify export compatibility.
-
-### Important
-This tool does not replace Pixera.  
-It only prepares the CSV file faster and with less manual work.
-
-Official Pixera documentation:  
-<https://help.pixera.one/livetab/pixel-based-video-mapping>
