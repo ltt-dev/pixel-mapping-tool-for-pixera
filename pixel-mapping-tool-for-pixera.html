@@ -1675,6 +1675,10 @@
     return Math.min(max, Math.max(min, value));
   }
 
+  const PREVIEW_MIN_ZOOM = 0.25;
+  const PREVIEW_MAX_ZOOM = 48;
+  const PREVIEW_ZOOM_STEP = 1.2;
+
   function updateStats() {
     const el = document.getElementById('stats');
     const mappings = state.mappings;
@@ -1728,6 +1732,7 @@
     canvas.width = Math.max(1, Math.floor(rect.width * dpr));
     canvas.height = Math.max(1, Math.floor(rect.height * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
 
     const W = rect.width, H = rect.height;
     ctx.clearRect(0, 0, W, H);
@@ -1824,8 +1829,9 @@
     const scale = Math.min(plotW / spanX, plotH / spanY) * zoom;
     const drawW = spanX * scale;
     const drawH = spanY * scale;
-    const maxPanX = Math.max(0, (drawW - plotW) / (2 * scale));
-    const maxPanY = Math.max(0, (drawH - plotH) / (2 * scale));
+    // Allow moving far enough that a frame corner can be brought near the panel center.
+    const maxPanX = spanX / 2;
+    const maxPanY = spanY / 2;
     const rawPanX = pan && Number.isFinite(pan.x) ? pan.x : 0;
     const rawPanY = pan && Number.isFinite(pan.y) ? pan.y : 0;
     const panX = clamp(rawPanX, -maxPanX, maxPanX);
@@ -1927,7 +1933,21 @@
       : ('bbox ' + Math.round(spanX) + ' × ' + Math.round(spanY) + ' px');
     ctx.fillText(dimsText, x + pad, y + h - footerH + 4);
 
-    return { scale, maxPanX, maxPanY };
+    return {
+      scale,
+      maxPanX,
+      maxPanY,
+      plotX: clipX,
+      plotY: clipY,
+      plotW,
+      plotH,
+      frameMinX: frame.minX,
+      frameMinY: frame.minY,
+      spanX,
+      spanY,
+      baseOffsetX: x + pad + (plotW - drawW) / 2,
+      baseOffsetY: y + headerH + (plotH - drawH) / 2,
+    };
   }
 
   function updateLegend() {
@@ -2003,7 +2023,7 @@
   }
 
   function setPreviewZoom(which, nextZoom) {
-    const clamped = Math.max(0.5, Math.min(3, Math.round(nextZoom * 100) / 100));
+    const clamped = clamp(Math.round(nextZoom * 100) / 100, PREVIEW_MIN_ZOOM, PREVIEW_MAX_ZOOM);
     const key = which === 'dst' ? 'previewZoomDst' : 'previewZoomSrc';
     if (clamped === uiState[key]) return;
     uiState[key] = clamped;
@@ -2024,9 +2044,60 @@
     schedulePreview();
   }
 
+  function setPreviewPanAbsolute(which, x, y) {
+    const key = which === 'dst' ? 'previewPanDst' : 'previewPanSrc';
+    const metric = previewState.metrics[which];
+    uiState[key] = {
+      x: metric ? clamp(x, -metric.maxPanX, metric.maxPanX) : x,
+      y: metric ? clamp(y, -metric.maxPanY, metric.maxPanY) : y,
+    };
+    schedulePreview();
+  }
+
   function previewSideFromEvent(e) {
     const rect = e.currentTarget.getBoundingClientRect();
     return (e.clientX - rect.left) < (rect.width / 2) ? 'src' : 'dst';
+  }
+
+  function getPreviewLocalPoint(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  }
+
+  function zoomPreviewAtPoint(which, nextZoom, localX, localY) {
+    const metric = previewState.metrics[which];
+    const currentZoom = which === 'dst' ? uiState.previewZoomDst : uiState.previewZoomSrc;
+    const targetZoom = clamp(Math.round(nextZoom * 100) / 100, PREVIEW_MIN_ZOOM, PREVIEW_MAX_ZOOM);
+    if (!metric || !metric.scale || targetZoom === currentZoom) {
+      setPreviewZoom(which, targetZoom);
+      return;
+    }
+
+    const worldX = metric.frameMinX + (localX - metric.baseOffsetX - uiState[(which === 'dst' ? 'previewPanDst' : 'previewPanSrc')].x * metric.scale) / metric.scale;
+    const worldY = metric.frameMinY + (localY - metric.baseOffsetY - uiState[(which === 'dst' ? 'previewPanDst' : 'previewPanSrc')].y * metric.scale) / metric.scale;
+    const nextScale = metric.scale * (targetZoom / currentZoom);
+    const nextDrawW = metric.spanX * nextScale;
+    const nextDrawH = metric.spanY * nextScale;
+    const nextBaseOffsetX = metric.plotX + (metric.plotW - nextDrawW) / 2;
+    const nextBaseOffsetY = metric.plotY + (metric.plotH - nextDrawH) / 2;
+    const nextPanX = (localX - nextBaseOffsetX - (worldX - metric.frameMinX) * nextScale) / nextScale;
+    const nextPanY = (localY - nextBaseOffsetY - (worldY - metric.frameMinY) * nextScale) / nextScale;
+
+    const zoomKey = which === 'dst' ? 'previewZoomDst' : 'previewZoomSrc';
+    uiState[zoomKey] = targetZoom;
+    updatePreviewZoomLabels();
+    setPreviewPanAbsolute(which, nextPanX, nextPanY);
+  }
+
+  function zoomPreviewAroundCenter(which, factor) {
+    const metric = previewState.metrics[which];
+    const currentZoom = which === 'dst' ? uiState.previewZoomDst : uiState.previewZoomSrc;
+    const centerX = metric ? (metric.plotX + metric.plotW / 2) : 0;
+    const centerY = metric ? (metric.plotY + metric.plotH / 2) : 0;
+    zoomPreviewAtPoint(which, currentZoom * factor, centerX, centerY);
   }
 
   function togglePanel(panelId) {
@@ -2129,19 +2200,20 @@
       uiState.hintsHidden = !uiState.hintsHidden;
       updateHintVisibility();
     });
-    document.getElementById('btn-zoom-in-src').addEventListener('click', () => setPreviewZoom('src', uiState.previewZoomSrc + 0.1));
-    document.getElementById('btn-zoom-out-src').addEventListener('click', () => setPreviewZoom('src', uiState.previewZoomSrc - 0.1));
+    document.getElementById('btn-zoom-in-src').addEventListener('click', () => zoomPreviewAroundCenter('src', PREVIEW_ZOOM_STEP));
+    document.getElementById('btn-zoom-out-src').addEventListener('click', () => zoomPreviewAroundCenter('src', 1 / PREVIEW_ZOOM_STEP));
     document.getElementById('btn-zoom-reset-src').addEventListener('click', () => resetPreviewViewport('src'));
-    document.getElementById('btn-zoom-in-dst').addEventListener('click', () => setPreviewZoom('dst', uiState.previewZoomDst + 0.1));
-    document.getElementById('btn-zoom-out-dst').addEventListener('click', () => setPreviewZoom('dst', uiState.previewZoomDst - 0.1));
+    document.getElementById('btn-zoom-in-dst').addEventListener('click', () => zoomPreviewAroundCenter('dst', PREVIEW_ZOOM_STEP));
+    document.getElementById('btn-zoom-out-dst').addEventListener('click', () => zoomPreviewAroundCenter('dst', 1 / PREVIEW_ZOOM_STEP));
     document.getElementById('btn-zoom-reset-dst').addEventListener('click', () => resetPreviewViewport('dst'));
     const previewFrame = document.getElementById('preview-frame');
     previewFrame.addEventListener('wheel', (e) => {
       e.preventDefault();
       const which = previewSideFromEvent(e);
-      const delta = e.deltaY < 0 ? 0.1 : -0.1;
       const currentZoom = which === 'dst' ? uiState.previewZoomDst : uiState.previewZoomSrc;
-      setPreviewZoom(which, currentZoom + delta);
+      const point = getPreviewLocalPoint(e);
+      const factor = e.deltaY < 0 ? PREVIEW_ZOOM_STEP : (1 / PREVIEW_ZOOM_STEP);
+      zoomPreviewAtPoint(which, currentZoom * factor, point.x, point.y);
     }, { passive: false });
     previewFrame.addEventListener('pointerdown', (e) => {
       const which = previewSideFromEvent(e);
